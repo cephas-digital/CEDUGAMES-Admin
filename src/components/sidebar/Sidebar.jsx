@@ -29,7 +29,7 @@ const Sidebar = ({ children, onSelectPage }) => {
     { to: "/categories", label: "Categories/Levels", icon: <FaTrophy /> },
     { to: "/notifications", label: "Notifications", icon: <FaChartLine /> },
     { to: "/settings", label: "Settings", icon: <FaSchool /> },
-    { to: "/  ", label: "Log Out", icon: <FaTrophy /> },
+    { to: "", label: "Log Out", icon: <FaTrophy /> },
   ];
 
   return (

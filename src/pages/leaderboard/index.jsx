@@ -134,52 +134,106 @@ export default function Leaderboard() {
       {/* Leaderboard Table */}
       <div className="space-y-2 mb-6">
         {currentUsers.map((user) => (
+          // <div
+          //   key={user.id}
+          //   className={`flex items-center justify-between px-6 py-4 rounded-lg ${getRowBackground(
+          //     user.rank,
+          //   )}`}
+          // >
+          //   {/* Left: Rank and User Info */}
+          //   <div className="flex items-center gap-4">
+          //     {/* Rank Badge */}
+          //     <div
+          //       className={`flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm ${getRankBadgeColor(
+          //         user.rank,
+          //       )}`}
+          //     >
+          //       {user.rank}
+          //     </div>
+
+          //     {/* Avatar */}
+          //     <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-2xl">
+          //       {user.avatar}
+          //     </div>
+
+          //     {/* Name and Level */}
+          //     <div>
+          //       <p className="font-bold text-gray-900">{user.name}</p>
+          //       <p className="text-sm text-gray-600">Level {user.level}</p>
+          //     </div>
+          //   </div>
+
+          //   {/* Middle: Points */}
+          //   <div className="flex flex-col items-center justify-center text-left">
+          //     <p className="font-bold text-gray-900">
+          //       {user.points.toLocaleString()}
+          //     </p>
+          //     <p className="text-sm text-gray-600">points</p>
+          //   </div>
+
+          //   {/* Right: View Details Link */}
+          //   <Link to="/leaderboard/leaderboard-details">
+          //     <div
+          //       href="#"
+          //       className="text-purple-600 hover:text-purple-700 font-bold text-sm"
+          //     >
+          //       View details
+          //     </div>
+          //   </Link>
+          // </div>
+
           <div
             key={user.id}
             className={`flex items-center justify-between px-6 py-4 rounded-lg ${getRowBackground(
-              user.rank
-            )}`}
+              user.rank,
+            )} h-20`} // fixed row height
           >
             {/* Left: Rank and User Info */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
               {/* Rank Badge */}
               <div
                 className={`flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm ${getRankBadgeColor(
-                  user.rank
+                  user.rank,
                 )}`}
               >
                 {user.rank}
               </div>
 
               {/* Avatar */}
-              <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-2xl">
+              <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-2xl flex-shrink-0">
                 {user.avatar}
               </div>
 
               {/* Name and Level */}
-              <div>
-                <p className="font-bold text-gray-900">{user.name}</p>
-                <p className="text-sm text-gray-600">Level {user.level}</p>
+              <div className="min-w-0">
+                {" "}
+                {/* min-w-0 + truncate prevents wrapping */}
+                <p className="font-bold text-gray-900 truncate leading-tight">
+                  {user.name}
+                </p>
+                <p className="text-sm text-gray-600 leading-tight">
+                  Level {user.level}
+                </p>
               </div>
             </div>
 
-            {/* Middle: Points */}
-            <div className="flex flex-col items-center justify-center text-center">
-              <p className="font-bold text-gray-900">
+            {/* Middle: Points (fixed width and vertically centered) */}
+            <div className="w-40 flex flex-col items-center justify-center h-full text-center">
+              <p className="font-bold text-gray-900 leading-tight">
                 {user.points.toLocaleString()}
               </p>
-              <p className="text-sm text-gray-600">points</p>
+              <p className="text-sm text-gray-600 leading-tight">points</p>
             </div>
 
-            {/* Right: View Details Link */}
-            <Link to="/leaderboard/leaderboard-details">
-              <div
-                href="#"
+            {/* Right: View Details Link (fixed width, right aligned) */}
+            <div className="w-40 text-right">
+              <Link
+                to="/leaderboard/leaderboard-details"
                 className="text-purple-600 hover:text-purple-700 font-bold text-sm"
               >
                 View details
-              </div>
-            </Link>
+              </Link>
+            </div>
           </div>
         ))}
       </div>
