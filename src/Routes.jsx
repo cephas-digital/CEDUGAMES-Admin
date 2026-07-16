@@ -6,6 +6,7 @@ import Login from "./screens/login";
 import Index from "./pages/index";
 import Navbar from "./components/navbar/Navbar";
 import Sidebar from "./components/sidebar/Sidebar";
+import { canAccess, getDefaultRoute } from "./data/adminAuth";
 
 const AdminLayout = ({ children }) => (
   <Sidebar>
@@ -15,14 +16,15 @@ const AdminLayout = ({ children }) => (
 );
 
 const ProtectedPage = () => {
-  const isAuth = useSelector((state) => state.auth.isAuth);
+  const { isAuth, user } = useSelector((state) => state.auth);
+  const page = window.location.pathname.split("/")[1] || "dashboard";
 
-  return isAuth ? (
+  return isAuth && canAccess(user, page) ? (
     <AdminLayout>
       <PageRender />
     </AdminLayout>
   ) : (
-    <Navigate to="/" replace />
+    <Navigate to={isAuth ? getDefaultRoute(user) : "/"} replace />
   );
 };
 

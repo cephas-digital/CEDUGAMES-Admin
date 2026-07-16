@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import CEDUGAMES from "../assets/CEDUGAMES.png";
 import { SetAuthToken } from "../data/Config";
 import { login } from "../data/Reducers/UserReducer";
+import { authenticateAdmin, getDefaultRoute, publicAdmin } from "../data/adminAuth";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -20,6 +21,19 @@ const Login = () => {
     setLoading(true);
 
     try {
+      const localAdmin = authenticateAdmin(form.email, form.password);
+      if (localAdmin) {
+        dispatch(
+          login({
+            token: `cedugames-${localAdmin.id}-${Date.now()}`,
+            user: publicAdmin(localAdmin),
+          })
+        );
+        navigate(getDefaultRoute(localAdmin), { replace: true });
+        toast.success(`Welcome, ${localAdmin.name}`);
+        return;
+      }
+
       const { data } = await axios.post("/api/v1/login", form);
       const payload = data?.data || data;
       const token = payload?.token || data?.token;

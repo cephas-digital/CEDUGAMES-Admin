@@ -3,11 +3,12 @@ import { SetAuthToken } from "../Config";
 import { clearErrors, getErrorText } from "./ErrorReducer";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { getSessionUser, SESSION_USER_KEY } from "../adminAuth";
 
 export const TOKEN = "EXAMPREP_LOGIN";
 
 let initialState = {
-  user: null,
+  user: getSessionUser(),
   token: localStorage.getItem(TOKEN),
   isAuth: Boolean(localStorage.getItem(TOKEN)),
   loading: false,
@@ -28,6 +29,7 @@ export const userSlice = createSlice({
       state.token = payload?.token;
       state.user = payload?.user;
       state.isAuth = true;
+      localStorage.setItem(SESSION_USER_KEY, JSON.stringify(payload?.user));
     },
     register: (state) => {
       state.isRegistered = true;
@@ -63,6 +65,7 @@ export const userSlice = createSlice({
     },
     logout: (state) => {
       localStorage.removeItem(TOKEN);
+      localStorage.removeItem(SESSION_USER_KEY);
       state.isAuth = false;
       state.user = null;
       state.token = null;

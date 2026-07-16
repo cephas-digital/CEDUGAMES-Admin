@@ -4,6 +4,7 @@ import { MdSearch } from "react-icons/md";
 import { Link, useNavigate } from "react-router-dom";
 import navImg from "../../assets/admin.png";
 import { useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const Navbar = ({ title }) => {
   const { pathname } = useLocation();
@@ -16,6 +17,7 @@ const Navbar = ({ title }) => {
   }
 
   const [search, setSearch] = useState("");
+  const user = useSelector((state) => state.auth.user);
   return (
     <div className="flex items-center mb-4 justify-between px-6 py-4 bg-white shadow-sm">
       <h1 className="text-xl font-semibold">{title}</h1>
@@ -51,8 +53,8 @@ const Navbar = ({ title }) => {
               className="w-9 h-9 rounded-full object-cover"
             />
             <div>
-              <p className="text-sm font-medium">Admin User</p>
-              <p className="text-xs text-gray-400">Administrator</p>
+              <p className="text-sm font-medium">{user?.name || "Admin User"}</p>
+              <p className="text-xs text-gray-400">{user?.role || "Administrator"}</p>
             </div>
           </div>
         </Link>

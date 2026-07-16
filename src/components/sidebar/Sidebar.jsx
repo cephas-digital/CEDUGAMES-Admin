@@ -10,11 +10,14 @@ import {
   FaSchool,
   FaTrophy,
 } from "react-icons/fa";
+import { useSelector } from "react-redux";
+import { canAccess } from "../../data/adminAuth";
 
 const Sidebar = ({ children, onSelectPage }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const location = useLocation();
+  const user = useSelector((state) => state.auth.user);
 
   const links = [
     { to: "/dashboard", label: "Dashboard", icon: <FaUserGraduate /> },
@@ -29,8 +32,9 @@ const Sidebar = ({ children, onSelectPage }) => {
     { to: "/categories", label: "Categories/Levels", icon: <FaTrophy /> },
     { to: "/notifications", label: "Notifications", icon: <FaChartLine /> },
     { to: "/settings", label: "Settings", icon: <FaSchool /> },
+    { to: "/admins", label: "Admins", icon: <FaCog />, page: "admins" },
     { to: "/log-out", label: "Log Out", icon: <FaSignOutAlt /> },
-  ];
+  ].filter(({ to, page }) => canAccess(user, page || to.split("/")[1]));
 
   return (
     <div className=" font-Outfit">
