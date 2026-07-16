@@ -6,7 +6,7 @@ import store from "./data/Store";
 import { BrowserRouter as Router } from "react-router-dom";
 import Routers from "./Routes";
 import { SetAuthToken, SetDefaultHeaders } from "./data/Config";
-import { TOKEN } from "./data/Stores/Authstore";
+import { TOKEN } from "./data/Reducers/UserReducer";
 import DocumentMeta from "react-document-meta";
 import { Provider } from "react-redux";
 

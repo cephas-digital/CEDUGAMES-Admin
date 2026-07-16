@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import CEDUGAMES from "../assets/CEDUGAMES.png";
 import { SetAuthToken } from "../data/Config";
 import { login } from "../data/Reducers/UserReducer";
-import { authenticateAdmin, getDefaultRoute, publicAdmin } from "../data/adminAuth";
+import { getDefaultRoute } from "../data/adminAuth";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -21,28 +21,16 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const localAdmin = authenticateAdmin(form.email, form.password);
-      if (localAdmin) {
-        dispatch(
-          login({
-            token: `cedugames-${localAdmin.id}-${Date.now()}`,
-            user: publicAdmin(localAdmin),
-          })
-        );
-        navigate(getDefaultRoute(localAdmin), { replace: true });
-        toast.success(`Welcome, ${localAdmin.name}`);
-        return;
-      }
-
-      const { data } = await axios.post("/api/v1/login", form);
+      const { data } = await axios.post("/auth/admin/login", form);
       const payload = data?.data || data;
       const token = payload?.token || data?.token;
 
       if (!token) throw new Error("The server did not return an access token.");
 
       SetAuthToken(token);
-      dispatch(login({ ...payload, token, user: payload?.user || payload?.data }));
-      navigate("/dashboard", { replace: true });
+      const user = payload?.user || data?.user;
+      dispatch(login({ ...payload, token, user }));
+      navigate(getDefaultRoute(user), { replace: true });
       toast.success(data?.message || "Welcome back");
     } catch (error) {
       toast.error(
