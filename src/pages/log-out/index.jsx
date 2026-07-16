@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import useAuthStore, { TOKEN as DATA_TOKEN } from "../../data/Stores/Authstore";
 import { SetAuthToken } from "../../data/Config";
 import { TOKEN as LOGIN_TOKEN } from "../../data/Reducers/UserReducer";
+import { logout as logoutRedux } from "../../data/Reducers/UserReducer";
+import { useDispatch } from "react-redux";
 
 /**
  * Logout page:
@@ -14,6 +16,7 @@ import { TOKEN as LOGIN_TOKEN } from "../../data/Reducers/UserReducer";
 const Logout = () => {
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     // remove axios auth header
@@ -31,10 +34,11 @@ const Logout = () => {
 
     // update client auth state
     if (typeof logout === "function") logout();
+    dispatch(logoutRedux());
 
     // send user to login
-    navigate("/login", { replace: true });
-  }, [logout, navigate]);
+    navigate("/", { replace: true });
+  }, [dispatch, logout, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -42,7 +46,7 @@ const Logout = () => {
         <h2 className="text-xl font-semibold mb-2">Signed out</h2>
         <p className="text-gray-600 mb-4">Redirecting to login…</p>
         <button
-          onClick={() => navigate("/login")}
+          onClick={() => navigate("/")}
           className="px-4 py-2 bg-purple-600 text-white rounded"
         >
           Go to Login

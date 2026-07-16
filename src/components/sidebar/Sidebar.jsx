@@ -17,7 +17,7 @@ const Sidebar = ({ children, onSelectPage }) => {
   const location = useLocation();
 
   const links = [
-    { to: "/", label: "Dashboard", icon: <FaUserGraduate /> },
+    { to: "/dashboard", label: "Dashboard", icon: <FaUserGraduate /> },
     {
       to: "/user-management",
       label: "User Management",
@@ -29,7 +29,7 @@ const Sidebar = ({ children, onSelectPage }) => {
     { to: "/categories", label: "Categories/Levels", icon: <FaTrophy /> },
     { to: "/notifications", label: "Notifications", icon: <FaChartLine /> },
     { to: "/settings", label: "Settings", icon: <FaSchool /> },
-    { to: "", label: "Log Out", icon: <FaTrophy /> },
+    { to: "/log-out", label: "Log Out", icon: <FaSignOutAlt /> },
   ];
 
   return (
@@ -53,7 +53,7 @@ const Sidebar = ({ children, onSelectPage }) => {
             X
           </button>
           <div>
-            <Link to="/home">
+            <Link to="/dashboard">
               <div className=" mt-20">
                 <img
                   className=" w-48"

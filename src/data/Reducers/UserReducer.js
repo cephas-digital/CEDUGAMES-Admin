@@ -9,7 +9,7 @@ export const TOKEN = "EXAMPREP_LOGIN";
 let initialState = {
   user: null,
   token: localStorage.getItem(TOKEN),
-  isAuth: true,
+  isAuth: Boolean(localStorage.getItem(TOKEN)),
   loading: false,
   isRegistered: false,
   isLoggedIn: false,
@@ -27,6 +27,7 @@ export const userSlice = createSlice({
       state.isLoggedIn = true;
       state.token = payload?.token;
       state.user = payload?.user;
+      state.isAuth = true;
     },
     register: (state) => {
       state.isRegistered = true;
