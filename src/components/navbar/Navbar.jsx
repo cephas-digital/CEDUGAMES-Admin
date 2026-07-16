@@ -1,21 +1,11 @@
 import { useState } from "react";
 import bell from "../../assets/bell.png";
 import { MdSearch } from "react-icons/md";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import navImg from "../../assets/admin.png";
-import { useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const Navbar = ({ title }) => {
-  const { pathname } = useLocation();
-  const isProfile = pathname === "/profile-page";
-
-  const navigate = useNavigate();
-
-  function handleNotification() {
-    navigate("/notification");
-  }
-
   const [search, setSearch] = useState("");
   const user = useSelector((state) => state.auth.user);
   return (
@@ -38,12 +28,12 @@ const Navbar = ({ title }) => {
             />
           </div>
         </div>
-        <div className="relative w-8 h-8">
+        <Link to="/notifications" className="relative block w-8 h-8" aria-label="View notifications and activities">
           <img
             src={bell}
             alt="Notification bell"
           />
-        </div>
+        </Link>
 
         <Link to="/settings">
           <div className="flex items-center space-x-2">

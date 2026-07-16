@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ShieldCheck, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "react-toastify";
 import { getAdmins, PERMISSIONS, saveAdmins } from "../../data/adminAuth";
+import ConfirmDialog from "../../components/confirm-dialog";
 
 const emptyForm = {
   name: "",
@@ -14,6 +15,7 @@ const emptyForm = {
 const Admins = () => {
   const [admins, setAdmins] = useState(getAdmins);
   const [form, setForm] = useState(emptyForm);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   const togglePermission = (permission) => {
     setForm((current) => ({
@@ -50,6 +52,7 @@ const Admins = () => {
     saveAdmins(updated);
     setAdmins(updated);
     toast.success("Admin removed");
+    setPendingDelete(null);
   };
 
   return (
@@ -127,7 +130,7 @@ const Admins = () => {
                     <td className="px-6 py-4"><p className="font-semibold text-slate-900">{admin.name}</p><p className="text-xs text-slate-500">{admin.email}</p></td>
                     <td className="px-6 py-4"><span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700"><ShieldCheck size={13} />{admin.role}</span></td>
                     <td className="max-w-xs px-6 py-4 text-xs text-slate-500">{admin.permissions.includes("*") ? "Full access" : admin.permissions.map((key) => PERMISSIONS.find((item) => item.key === key)?.label).filter(Boolean).join(", ")}</td>
-                    <td className="px-6 py-4">{admin.id !== "super-admin" && <button onClick={() => removeAdmin(admin.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label={`Remove ${admin.name}`}><Trash2 size={18} /></button>}</td>
+                    <td className="px-6 py-4">{admin.id !== "super-admin" && <button onClick={() => setPendingDelete(admin)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label={`Remove ${admin.name}`}><Trash2 size={18} /></button>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -135,6 +138,7 @@ const Admins = () => {
           </div>
         </section>
       </div>
+      <ConfirmDialog open={!!pendingDelete} title="Remove administrator?" message={`Remove ${pendingDelete?.name || "this administrator"} and revoke their dashboard access?`} onCancel={() => setPendingDelete(null)} onConfirm={() => removeAdmin(pendingDelete.id)} />
     </div>
   );
 };

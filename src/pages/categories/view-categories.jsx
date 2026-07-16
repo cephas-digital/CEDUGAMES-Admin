@@ -1,89 +1,11 @@
-import React from "react";
-
-import GameBoard from "../../assets/game-card.png";
-import bgImage from "../../assets/levelImae.png";
-import levelImage from "../../assets/levelImage.png";
-import { Link } from "react-router-dom";
-
-const levels = Array.from({ length: 6 }).map((_, i) => ({
-  id: i + 1,
-  title: "Level 1",
-  image: levelImage,
-  subtitle: "Learn through fun and play!",
-  description:
-    "Discover colors, shapes, animals, and numbers with simple games that make learning exciting and easy to understand.",
-}));
-
-export default function GamesCategoryDetails() {
-  return (
-    <div className="p-6 max-w-7xl mx-auto w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Games Categories Details
-        </h1>
-
-        <Link to="/categories/add-level">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold bg-purple-600 text-white text-base  hover:bg-purple-700 transition">
-            Add Level
-          </button>
-        </Link>
-      </div>
-
-      <div className="mb-8 rounded-2xl border-2 border-[#EBDFFA80] bg-white p-5 flex items-start gap-4 shadow-lg">
-        <div className="flex items-center justify-center text-purple-600 font-bold">
-          <img
-            src={GameBoard}
-            alt="GameBoard"
-            className="w-14 h-14"
-          />
-        </div>
-        <div>
-          <h2 className="font-medium font-sans text-base text-[#281B22]">
-            Math Adventures
-          </h2>
-          <p className="text-base font-sans font-[300] text-[#281B22]">
-            Solve puzzles, count treasures, and become a number wizard!
-          </p>
-        </div>
-      </div>
-
-      <h2 className="text-2xl font-semibold text-gray-900 mb-4">All Levels</h2>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {levels.map((level) => (
-          <div
-            key={level.id}
-            className="relative  p-6 rounded-3xl text-gray-900"
-            style={{
-              backgroundImage: `url(${bgImage})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              clipPath: "polygon(0 10%, 100% 0, 100% 100%, 0 100%)",
-            }}
-          >
-            <div className=" flex mt-20">
-              <img
-                src={level.image}
-                alt={level.subtitle}
-                className="w-32 h-32 object-contain mb-4"
-              />
-
-              <div className=" text-[#281B22] font-sans">
-                <h3 className="font-bold  mb-1">{level.title}</h3>
-                <p className="text-sm italic  mb-2">{level.subtitle}</p>
-                <p className="text-sm s mb-6">{level.description}</p>
-
-                <Link to="/content/add-question">
-                  <button className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition">
-                    Add Question
-                  </button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+import React,{useEffect,useState}from"react";import axios from"axios";import{Layers3,Pencil,Plus,Trash2}from"lucide-react";import{useSearchParams}from"react-router-dom";import{toast}from"react-toastify";
+import PageNavigation from"../../components/page-navigation";import ConfirmDialog from"../../components/confirm-dialog";import FormDialog from"../../components/form-dialog";
+const blank={name:"",levelNumber:"",description:"",imageUrl:""},field="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100";
+export default function CategoryLevels(){const[params]=useSearchParams(),ageId=params.get("ageGroup"),categoryId=params.get("category"),[age,setAge]=useState(null),[category,setCategory]=useState(null),[levels,setLevels]=useState([]),[loading,setLoading]=useState(true),[dialog,setDialog]=useState(false),[editing,setEditing]=useState(null),[deleting,setDeleting]=useState(null),[form,setForm]=useState(blank),[busy,setBusy]=useState(false);
+const load=async()=>{if(!ageId||!categoryId)return;setLoading(true);try{const[a,c,l]=await Promise.all([axios.get("/admin/catalog/age-groups"),axios.get(`/admin/catalog/age-groups/${ageId}/categories`),axios.get(`/admin/catalog/categories/${categoryId}/levels`)]);setAge(a.data.ageGroups.find(x=>x.id===ageId));setCategory(c.data.categories.find(x=>x.id===categoryId));setLevels(l.data.levels||[])}catch(e){toast.error("Unable to load category levels")}finally{setLoading(false)}};useEffect(()=>{load()},[ageId,categoryId]);
+const open=(x=null)=>{setEditing(x);setForm(x?{name:x.name,levelNumber:x.level_number,description:x.description||"",imageUrl:x.image_url||""}:{...blank,levelNumber:levels.length+1});setDialog(true)};
+const save=async e=>{e.preventDefault();setBusy(true);const payload={...form,categoryId,levelNumber:Number(form.levelNumber)};try{editing?await axios.put(`/admin/catalog/levels/${editing.id}`,payload):await axios.post("/admin/catalog/levels",payload);toast.success(`Level ${editing?"updated":"created"}`);setDialog(false);load()}catch(x){toast.error(x.response?.data?.message||x.response?.data?.errors?.[0]?.message||"Unable to save level")}finally{setBusy(false)}};
+const remove=async()=>{setBusy(true);try{await axios.delete(`/admin/catalog/levels/${deleting.id}`);toast.success("Level deleted");setDeleting(null);load()}catch(e){toast.error(e.response?.data?.message||"Unable to delete level")}finally{setBusy(false)}};
+return <div className="mx-auto w-full max-w-7xl px-6 pb-10"><PageNavigation items={[{label:"Age Groups",to:"/categories"},{label:age?.name||"Categories",to:`/categories/age-categories?ageGroup=${ageId}`},{label:category?.name||"Levels"}]} title={category?.name||"Category"} description={category?.description||"Manage the levels available in this category."} action={<button onClick={()=>open()} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white"><Plus size={18}/>Add Level</button>}/>
+{loading?<div className="rounded-2xl bg-white p-16 text-center text-slate-400">Loading levels...</div>:levels.length?<div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{levels.map(x=><article key={x.id} className="rounded-2xl border bg-white p-6 shadow-sm"><div className="flex items-start justify-between"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600"><Layers3/></span><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">Level {x.level_number}</span></div><h2 className="mt-5 text-lg font-bold">{x.name}</h2><p className="mt-2 min-h-12 text-sm leading-6 text-slate-500">{x.description||"No description"}</p><div className="mt-5 flex gap-4 border-t pt-4"><button onClick={()=>open(x)} className="flex items-center gap-1 text-sm font-semibold text-purple-600"><Pencil size={15}/>Edit</button><button onClick={()=>setDeleting(x)} className="flex items-center gap-1 text-sm font-semibold text-red-500"><Trash2 size={15}/>Delete</button></div></article>)}</div>:<div className="rounded-2xl border-2 border-dashed bg-white p-16 text-center"><Layers3 className="mx-auto text-purple-400" size={36}/><h2 className="mt-4 text-lg font-bold">No levels created</h2><p className="mt-2 text-sm text-slate-500">Add the first level to this category.</p><button onClick={()=>open()} className="mt-5 rounded-xl bg-purple-600 px-5 py-3 font-semibold text-white">Add Level</button></div>}
+<FormDialog open={dialog} title={editing?"Edit level":"Create level"} onClose={()=>setDialog(false)}><form onSubmit={save} className="grid gap-5 sm:grid-cols-2"><label className="text-sm font-semibold">Level number<input required min="1" type="number" className={`${field} mt-2`} value={form.levelNumber} onChange={e=>setForm({...form,levelNumber:e.target.value})}/></label><label className="text-sm font-semibold">Level name<input required className={`${field} mt-2`} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Number Quest"/></label><label className="sm:col-span-2 text-sm font-semibold">Description<textarea rows="4" className={`${field} mt-2 resize-none`} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label><label className="sm:col-span-2 text-sm font-semibold">Image URL <span className="font-normal text-slate-400">(optional)</span><input type="url" className={`${field} mt-2`} value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})}/></label><div className="sm:col-span-2 flex justify-end gap-3"><button type="button" onClick={()=>setDialog(false)} className="rounded-xl border px-5 py-3 font-semibold">Cancel</button><button disabled={busy} className="rounded-xl bg-purple-600 px-6 py-3 font-semibold text-white">{busy?"Saving...":"Save level"}</button></div></form></FormDialog><ConfirmDialog open={!!deleting} loading={busy} onCancel={()=>setDeleting(null)} onConfirm={remove} title="Delete level?" message={`Delete ${deleting?.name||"this level"}? This action cannot be undone.`}/></div>}

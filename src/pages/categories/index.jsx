@@ -1,194 +1,29 @@
-import React, { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
-import Age from "../../assets/age(3-5).png";
-import AgeOne from "../../assets/age(6-8).png";
-import bg from "../../assets/one.png";
-import bgOne from "../../assets/two.png";
-import CTA from "../../assets/cta.png";
-import bgTwo from "../../assets/tree.png";
-import { Link } from "react-router-dom";
-import { DeleteUser, SuccessfulDelete } from "../../components/modal";
-import { FullBTN } from "../../components/button.jsx/Btn";
-const ageGroups = [
-  {
-    id: 1,
-    title: "Age 3–5: Little Explorers",
-    subtitle: "Learn through fun and play!",
-    description:
-      "Discover colors, shapes, animals, and numbers with simple games that make learning exciting and easy to understand.",
-    image: Age,
-    bgImage: bg,
-    bg: "bg-[#EBDFFA4D]",
-    border: "border-[#9B5DE5]",
-  },
-  {
-    id: 2,
-    title: "Ages 6–8: Young Thinkers",
-    subtitle: "Solve, build, and explore!",
-    description:
-      "Play games that boost your creativity, problem-solving, and memory. Learn new words, math tricks, and fun science facts!",
-    image: AgeOne,
-    bgImage: bgOne,
-    bg: "bg-[#FFECD24D]",
-    border: "border-[#FF9F1C]",
-  },
-  {
-    id: 3,
-    title: "Ages 9–11: Smart Adventurers",
-    subtitle: "Challenge your mind!",
-    description:
-      " Dive into brain games, quizzes, and creative missions that test your logic, teamwork, and curiosity about the world.",
-    image: Age,
-    bgImage: bgTwo,
-    bg: "bg-[#DCEEF84D]",
-    border: "border-[#4EA8DE ]",
-  },
-];
+import React,{useEffect,useState} from "react";
+import axios from "axios";
+import {FolderOpen,Pencil,Plus,Trash2} from "lucide-react";
+import {useNavigate} from "react-router-dom";
+import {toast} from "react-toastify";
+import AgeA from "../../assets/age(3-5).png"; import AgeB from "../../assets/age(6-8).png";
+import PageNavigation from "../../components/page-navigation";
+import ConfirmDialog from "../../components/confirm-dialog";
+import FormDialog from "../../components/form-dialog";
 
-export default function AgeGroups() {
-  const [deleteModal, setDeleteModal] = useState(false);
-  const [openSuccessfulDeleteModal, setOpenSuccessfulDeleteModal] =
-    useState(false);
-  const DeleteModal = () => setDeleteModal(true);
-
-  const confirmDelete = () => {
-    setDeleteModal(false);
-    setOpenSuccessfulDeleteModal(true);
-  };
-  const closeSuccessfulDeleteModal = () => setOpenSuccessfulDeleteModal(false);
-
-  return (
-    <div className="w-full min-h-screen max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-gray-900">Age Groups</h2>
-        <Link to="/categories/add-age-group">
-          <button className="bg-purple-600 hover:bg-purple-700 transition text-white font-semibold px-4 py-2 rounded-xl text-sm">
-            Add Age Group
-          </button>
-        </Link>
-      </div>
-      <Link to="/categories/age-categories">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {ageGroups.map((group) => (
-            <div
-              // key={group.id}
-              // className={`relative p-6 h-[300px] rounded-3xl border ${group.bg} ${group.border}`}
-              // style={{
-              //   clipPath: "polygon(0 10%, 100% 0, 100% 100%, 0 100%)",
-              // }}
-              key={group.id}
-              className="relative p-6 rounded-3xl text-gray-900"
-              style={{
-                backgroundImage: `url(${group.bgImage})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                clipPath: "polygon(0 10%, 100% 0, 100% 100%, 0 100%)",
-              }}
-            >
-              <div className=" flex mt-20">
-                <img
-                  src={group.image}
-                  alt={group.title}
-                  className="w-32 h-32 object-contain mb-4"
-                />
-
-                <div>
-                  <h3 className="text-lg font-sans font-semibold text-gray-900 mb-1">
-                    {group.title}
-                  </h3>
-
-                  <h2 className=" text-base italic font-light font-sans mb-1">
-                    {group.subtitle}
-                  </h2>
-
-                  <p className="text-sm text-gray-600 leading-relaxed mb-4">
-                    {group.description}
-                  </p>
-                </div>
-              </div>
-
-              {/* Edit / Delete */}
-              <div className="flex gap-3 text-sm font-medium">
-                <Link to="/categories/edit-age-group">
-                  <button className="text-purple-600 hover:underline flex items-center gap-1">
-                    <Pencil size={14} /> Edit
-                  </button>
-                </Link>
-
-                <span className="text-gray-400">|</span>
-
-                <button
-                  onClick={DeleteModal}
-                  className="text-red-500 hover:underline flex items-center gap-1"
-                >
-                  <Trash2 size={14} /> Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Link>
-
-      <DeleteUser
-        isOpen={deleteModal}
-        onClose={() => setDeleteModal(false)}
-      >
-        <div className="w-28 h-28 mx-auto">
-          <img
-            src={CTA}
-            alt="cta"
-            className="w-full h-full "
-          />
-        </div>
-        <div className="mx-auto text-center">
-          <p className="text-2xl font-bold py-2">Confirm Action</p>
-          <p>
-            Are you sure you want to delete category? Action cannot be reversed
-          </p>
-        </div>
-
-        <div className="flex items-center justify-center gap-4 mt-4">
-          <button
-            className="border border-[#995BE2] text-[#995BE2] text-[16px] font-medium py-2 px-4 rounded-xl w-[130px]"
-            onClick={() => setDeleteModal(false)}
-          >
-            No
-          </button>
-          <button
-            onClick={confirmDelete}
-            className="text-[16px] bg-[#995BE2] text-white font-medium py-2 px-4 rounded-[10px] w-[130px]"
-          >
-            Yes
-          </button>
-        </div>
-      </DeleteUser>
-
-      <SuccessfulDelete
-        isOpen={openSuccessfulDeleteModal}
-        onClose={closeSuccessfulDeleteModal}
-      >
-        <div>
-          <div>
-            <img
-              src={CTA}
-              alt=" verify delete"
-              className=" w-28 h-28 mx-auto"
-            />
-          </div>
-
-          <h2 className="text-[#000000] text-center text-[22px] leading-[27px] font-bold mb-4">
-            Action Completed!
-          </h2>
-          <p className="text-[#000000] text-center mb-4  text-[14px] leading-[18.9px]">
-            <span className="font-bold">User (Name)</span> has been deleted
-            succcessfully,
-          </p>
-
-          <FullBTN onClick={() => setOpenSuccessfulDeleteModal(false)}>
-            Okay
-          </FullBTN>
-        </div>
-      </SuccessfulDelete>
-    </div>
-  );
+const blank={name:"",minAge:"",maxAge:"",subtitle:"",description:"",imageUrl:""};
+const inputClass="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100";
+export default function AgeGroups(){
+ const nav=useNavigate(),[groups,setGroups]=useState([]),[loading,setLoading]=useState(true),[form,setForm]=useState(blank),[editing,setEditing]=useState(null),[dialog,setDialog]=useState(false),[deleting,setDeleting]=useState(null),[busy,setBusy]=useState(false);
+ const load=()=>{setLoading(true);axios.get("/admin/catalog/age-groups").then(r=>setGroups(r.data.ageGroups||[])).catch(e=>toast.error(e.response?.data?.message||"Unable to load age groups")).finally(()=>setLoading(false));}; useEffect(load,[]);
+ const openCreate=()=>{setEditing(null);setForm(blank);setDialog(true)};
+ const openEdit=(g)=>{setEditing(g);setForm({name:g.name,minAge:g.min_age,maxAge:g.max_age,subtitle:g.subtitle||"",description:g.description||"",imageUrl:g.image_url||""});setDialog(true)};
+ const save=async(e)=>{e.preventDefault();setBusy(true);const payload={...form,minAge:Number(form.minAge),maxAge:Number(form.maxAge)};try{editing?await axios.put(`/admin/catalog/age-groups/${editing.id}`,payload):await axios.post("/admin/catalog/age-groups",payload);toast.success(`Age group ${editing?"updated":"created"}`);setDialog(false);load();}catch(err){toast.error(err.response?.data?.message||err.response?.data?.errors?.[0]?.message||"Unable to save age group")}finally{setBusy(false)}};
+ const remove=async()=>{setBusy(true);try{await axios.delete(`/admin/catalog/age-groups/${deleting.id}`);toast.success("Age group deleted");setDeleting(null);load();}catch(e){toast.error(e.response?.data?.message||"Unable to delete age group")}finally{setBusy(false)}};
+ return <div className="mx-auto min-h-screen w-full max-w-7xl px-6 pb-10">
+  <PageNavigation items={[{label:"Age Groups"}]} title="Age Groups" description="Manage learning paths by age range." action={<button onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white"><Plus size={18}/>Add Age Group</button>}/>
+  {loading?<div className="rounded-2xl bg-white p-16 text-center text-slate-400">Loading age groups...</div>:<div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">{groups.map((g,i)=><article key={g.id} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+   <button onClick={()=>nav(`/categories/age-categories?ageGroup=${g.id}`)} className="w-full p-6 text-left"><div className={`mb-5 flex h-40 items-center justify-center rounded-2xl ${i%3===0?"bg-purple-50":i%3===1?"bg-orange-50":"bg-blue-50"}`}><img src={g.image_url||(i%2?AgeB:AgeA)} alt={g.name} className="h-32 max-w-full object-contain"/></div><p className="text-xs font-bold uppercase tracking-wider text-purple-600">Ages {g.min_age}–{g.max_age}</p><h2 className="mt-1 text-xl font-bold">{g.name}</h2><p className="mt-1 text-sm italic text-slate-500">{g.subtitle}</p><p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{g.description}</p><div className="mt-5 flex gap-4 text-xs font-semibold text-slate-500"><span>{g.category_count} categories</span><span>{g.level_count} levels</span></div></button>
+   <div className="flex border-t px-6 py-4"><button onClick={()=>openEdit(g)} className="flex items-center gap-1.5 text-sm font-semibold text-purple-600"><Pencil size={15}/>Edit</button><button onClick={()=>setDeleting(g)} className="ml-5 flex items-center gap-1.5 text-sm font-semibold text-red-500"><Trash2 size={15}/>Delete</button><button onClick={()=>nav(`/categories/age-categories?ageGroup=${g.id}`)} className="ml-auto flex items-center gap-1.5 text-sm font-semibold text-slate-600"><FolderOpen size={15}/>Open</button></div>
+  </article>)}</div>}
+  <FormDialog open={dialog} title={editing?"Edit age group":"Create age group"} onClose={()=>setDialog(false)}><form onSubmit={save} className="grid gap-5 sm:grid-cols-2"><label className="sm:col-span-2 text-sm font-semibold">Age group name<input required className={`${inputClass} mt-2`} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Little Explorers"/></label><label className="text-sm font-semibold">Minimum age<input required min="1" max="130" type="number" className={`${inputClass} mt-2`} value={form.minAge} onChange={e=>setForm({...form,minAge:e.target.value})}/></label><label className="text-sm font-semibold">Maximum age<input required min="1" max="130" type="number" className={`${inputClass} mt-2`} value={form.maxAge} onChange={e=>setForm({...form,maxAge:e.target.value})}/></label><label className="sm:col-span-2 text-sm font-semibold">Subtitle<input className={`${inputClass} mt-2`} value={form.subtitle} onChange={e=>setForm({...form,subtitle:e.target.value})} placeholder="Learn through fun and play!"/></label><label className="sm:col-span-2 text-sm font-semibold">Description<textarea rows="4" className={`${inputClass} mt-2 resize-none`} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label><label className="sm:col-span-2 text-sm font-semibold">Image URL <span className="font-normal text-slate-400">(optional)</span><input type="url" className={`${inputClass} mt-2`} value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})}/></label><div className="sm:col-span-2 flex justify-end gap-3"><button type="button" onClick={()=>setDialog(false)} className="rounded-xl border px-5 py-3 font-semibold">Cancel</button><button disabled={busy} className="rounded-xl bg-purple-600 px-6 py-3 font-semibold text-white disabled:opacity-50">{busy?"Saving...":"Save age group"}</button></div></form></FormDialog>
+  <ConfirmDialog open={!!deleting} loading={busy} onCancel={()=>setDeleting(null)} onConfirm={remove} title="Delete age group?" message={`Deleting ${deleting?.name||"this age group"} will permanently delete all categories and levels under it. This cannot be undone.`}/>
+ </div>;
 }

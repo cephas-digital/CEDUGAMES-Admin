@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import StatsCards from "../../components/statsCard";
 import { Users, Coins, Gamepad2, Trophy } from "lucide-react";
 import RecentTransactions from "../../components/recentTransaction";
