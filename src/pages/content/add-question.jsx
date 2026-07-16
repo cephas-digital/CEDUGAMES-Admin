@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { Paperclip } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import PageNavigation from "../../components/page-navigation";
 
 export default function AddQuestion() {
+  const [searchParams] = useSearchParams();
+  const selectedLevel = searchParams.get("level");
   const [questionText, setQuestionText] = useState("");
   const [options, setOptions] = useState({
     A: "",
@@ -26,10 +29,8 @@ export default function AddQuestion() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto bg-gray-50 min-h-screen">
-      {/* PAGE TITLE */}
-      <h1 className="text-3xl font-bold mb-8 text-gray-900">
-        Add New Question
-      </h1>
+      <PageNavigation items={[{ label: "Content", to: "/content" }, { label: "Add Question" }]} title="Add New Question" description={selectedLevel ? "This question will be assigned to the selected level." : "Create a question and assign it to a learning level."} />
+      {selectedLevel && <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700"><strong>Selected level:</strong> {selectedLevel}</div>}
 
       {/* Question Text */}
       <div className="mb-6">
