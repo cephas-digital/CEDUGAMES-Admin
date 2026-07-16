@@ -12,24 +12,16 @@ export const SetAuthToken = token => {
 
 // export const useURL = process.env.REACT_APP_BASE_URL;
 export const useURL =
-	process.env.NODE_ENV === "development"
-		? "http://localhost:8000"
-		: process.env.REACT_APP_BASE_URL;
+	process.env.REACT_APP_BASE_URL || "https://cedugames-backend.onrender.com";
 
 export const useURL2 =
-	process.env.NODE_ENV === "development"
-		? "http://localhost:9092"
-		: process.env.REACT_APP_SUPPORT_BASE_URL;
+	process.env.REACT_APP_SUPPORT_BASE_URL || "https://cedugames-backend.onrender.com";
 
 export const useURL3 =
-	process.env.NODE_ENV === "development"
-		? "http://localhost:9092"
-		: process.env.REACT_APP_SUPPORT_BASE_URL_TWO;
+	process.env.REACT_APP_SUPPORT_BASE_URL_TWO || "https://cedugames-backend.onrender.com";
 
 export const useURL4 =
-	process.env.NODE_ENV === "development"
-		? "http://localhost:9092"
-		: process.env.REACT_APP_SUPPORT_BASE_URL_THREE;
+	process.env.REACT_APP_SUPPORT_BASE_URL_THREE || "https://cedugames-backend.onrender.com";
 
 export const SetDefaultHeaders = () => {
 	axios.defaults.baseURL = useURL;
