@@ -77,7 +77,7 @@ export default function DataTable({
 
       <div className="flex items-center justify-between mt-6">
         <span className="text-sm text-gray-600">
-          Showing {startIndex + 1}-
+          Showing {data.length ? startIndex + 1 : 0}-
           {Math.min(startIndex + itemsPerPage, data.length)} of {data.length}{" "}
           {data.length === 1 ? "item" : "items"}
         </span>
@@ -110,7 +110,7 @@ export default function DataTable({
 
           <button
             onClick={handleNext}
-            disabled={currentPage === totalPages}
+            disabled={totalPages === 0 || currentPage === totalPages}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Next
