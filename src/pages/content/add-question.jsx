@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageNavigation from "../../components/page-navigation";
+import { useURL } from "../../data/Config";
 
 const EMPTY_OPTIONS = ["", "", "", ""];
 const EMPTY_SHAPES = { question: null, option0: null, option1: null, option2: null, option3: null };
@@ -40,6 +41,7 @@ const fieldClass =
 export default function AddQuestion() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const editId = searchParams.get("question");
   const [form, setForm] = useState({
     questionText: "",
     explanation: "",
@@ -59,6 +61,8 @@ export default function AddQuestion() {
   const attachmentsRef = useRef(attachments);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [loadingQuestion, setLoadingQuestion] = useState(Boolean(editId));
+  const [removedMedia, setRemovedMedia] = useState([]);
 
   const update = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -72,6 +76,19 @@ export default function AddQuestion() {
       .catch(() => toast.error("Unable to load age groups."))
       .finally(() => setCatalogLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!editId) return;
+    axios.get(`/admin/questions/${editId}`).then(({ data }) => {
+      const question = data.question;
+      setForm({ questionText: question.text || "", explanation: question.explanation || "", ageGroupId: question.ageGroupId, categoryId: question.categoryId, levelId: question.levelId, status: question.status });
+      setOptions(question.options.map((option) => option.text || ""));
+      setCorrectAnswer(question.options.findIndex((option) => option.isCorrect));
+      setShapes({ question: question.shapeType ? { type: question.shapeType, color: question.shapeColor } : null, ...Object.fromEntries(question.options.map((option, index) => [`option${index}`, option.shapeType ? { type: option.shapeType, color: option.shapeColor } : null])) });
+      setAttachments({ question: existingAttachment(question), ...Object.fromEntries(question.options.map((option, index) => [`option${index}`, existingAttachment(option)])) });
+    }).catch((error) => toast.error(error.response?.data?.message || "Unable to load question."))
+      .finally(() => setLoadingQuestion(false));
+  }, [editId]);
 
   useEffect(() => {
     if (!form.ageGroupId) {
@@ -100,7 +117,7 @@ export default function AddQuestion() {
   }, [attachments]);
 
   useEffect(() => () => {
-    Object.values(attachmentsRef.current).forEach((item) => item && URL.revokeObjectURL(item.preview));
+    Object.values(attachmentsRef.current).forEach((item) => item?.file && URL.revokeObjectURL(item.preview));
   }, []);
 
   const completeness = useMemo(() => {
@@ -125,9 +142,10 @@ export default function AddQuestion() {
 
   const setAttachment = (target, file, type) => {
     setAttachments((current) => {
-      if (current[target]) URL.revokeObjectURL(current[target].preview);
+      if (current[target]?.file) URL.revokeObjectURL(current[target].preview);
       return { ...current, [target]: file ? { file, type, preview: URL.createObjectURL(file) } : null };
     });
+    setRemovedMedia((current) => file ? current.filter((item) => item !== target) : [...new Set([...current, target])]);
     setErrors((current) => ({ ...current, [target === "question" ? "questionText" : "options"]: "" }));
   };
 
@@ -144,13 +162,14 @@ export default function AddQuestion() {
     body.append("status", form.status);
     body.append("shape", JSON.stringify(shapes.question));
     body.append("options", JSON.stringify(options.map((text, index) => ({ text, isCorrect: index === correctAnswer, mediaType: attachments[`option${index}`]?.type || null, shape: shapes[`option${index}`] }))));
-    if (attachments.question) body.append("questionMedia", attachments.question.file, attachments.question.file.name);
+    if (attachments.question?.file) body.append("questionMedia", attachments.question.file, attachments.question.file.name);
     body.append("questionMediaType", attachments.question?.type || "");
-    options.forEach((_, index) => { const item = attachments[`option${index}`]; if (item) body.append(`optionMedia${index}`, item.file, item.file.name); });
+    body.append("removeMedia", removedMedia.join(","));
+    options.forEach((_, index) => { const item = attachments[`option${index}`]; if (item?.file) body.append(`optionMedia${index}`, item.file, item.file.name); });
     try {
-      await axios.post("/admin/questions", body);
-      toast.success(form.status === "draft" ? "Question saved as draft." : "Question published successfully.");
-      navigate("/content");
+      if (editId) await axios.put(`/admin/questions/${editId}`, body); else await axios.post("/admin/questions", body);
+      toast.success(editId ? "Question updated successfully." : form.status === "draft" ? "Question saved as draft." : "Question published successfully.");
+      navigate(editId ? `/categories/level-questions?ageGroup=${form.ageGroupId}&category=${form.categoryId}&level=${form.levelId}` : "/content");
     } catch (error) {
       toast.error(error.response?.data?.message || error.response?.data?.errors?.[0]?.message || "Question could not be saved. Please try again.");
     } finally {
@@ -163,11 +182,11 @@ export default function AddQuestion() {
       <div className="mx-auto max-w-7xl">
         <PageNavigation
           items={[{ label: "Content", to: "/content" }, { label: "Add Question" }]}
-          title="Add New Question"
-          description="Build a complete, learner-ready question in one place."
+          title={editId ? "Edit Question" : "Add New Question"}
+          description={editId ? "Update this question and save your changes." : "Build a complete, learner-ready question in one place."}
         />
 
-        {Object.keys(errors).length > 0 && (
+        {loadingQuestion ? <div className="rounded-2xl bg-white p-20 text-center text-slate-500"><Loader2 className="mx-auto mb-3 animate-spin text-purple-600"/>Loading question...</div> : <>{Object.keys(errors).length > 0 && (
           <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
             <AlertCircle className="mt-0.5 shrink-0" size={18} />
             <div><p className="font-bold">This question needs a little more information.</p><p className="mt-1">Review the highlighted fields before saving.</p></div>
@@ -220,10 +239,10 @@ export default function AddQuestion() {
                 <p className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">Difficulty, points, and time limits are inherited from the selected level.</p>
               </div>
             </section>
-            <section className="rounded-2xl bg-slate-900 p-5 text-white shadow-sm"><h3 className="font-bold">Ready to add it?</h3><p className="mt-1 text-sm leading-6 text-slate-300">Required fields are marked with an asterisk. You can edit the question later.</p><button disabled={submitting} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-5 py-3 font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60">{submitting ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}{submitting ? "Saving question..." : form.status === "draft" ? "Save draft" : "Add question"}</button><button type="button" onClick={() => navigate("/content")} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"><X size={16} />Cancel</button></section>
+            <section className="rounded-2xl bg-slate-900 p-5 text-white shadow-sm"><h3 className="font-bold">{editId ? "Ready to update it?" : "Ready to add it?"}</h3><p className="mt-1 text-sm leading-6 text-slate-300">Required fields are marked with an asterisk.</p><button disabled={submitting} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-5 py-3 font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60">{submitting ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}{submitting ? "Saving question..." : editId ? "Save changes" : form.status === "draft" ? "Save draft" : "Add question"}</button><button type="button" onClick={() => navigate(-1)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"><X size={16} />Cancel</button></section>
           </aside>
         </div>
-      </div>
+      </>}</div>
     </form>
   );
 }
@@ -249,8 +268,8 @@ function AttachmentPreview({ attachment, onRemove, compact = false }) {
   const TypeIcon = MEDIA_TYPES.find((type) => type.id === attachment.type)?.icon || Paperclip;
   return <div className={`mt-3 flex items-center gap-3 rounded-xl border border-purple-100 bg-purple-50/60 ${compact ? "p-2" : "p-3"}`}>
     {attachment.type === "image" ? <img src={attachment.preview} alt="Attached preview" className={`${compact ? "h-10 w-10" : "h-14 w-14"} rounded-lg object-cover`} /> : <span className={`flex ${compact ? "h-10 w-10" : "h-14 w-14"} shrink-0 items-center justify-center rounded-lg bg-white text-purple-600`}><TypeIcon size={20} /></span>}
-    <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-700">{attachment.file.name}</p><p className="mt-0.5 text-xs capitalize text-slate-400">{attachment.type} · {(attachment.file.size / 1024 / 1024).toFixed(2)} MB</p></div>
-    <button type="button" onClick={onRemove} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label={`Remove ${attachment.file.name}`}><Trash2 size={16} /></button>
+    <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-700">{attachment.file?.name || attachment.name || "Existing attachment"}</p><p className="mt-0.5 text-xs capitalize text-slate-400">{attachment.type}{attachment.file ? ` · ${(attachment.file.size / 1024 / 1024).toFixed(2)} MB` : " · Saved media"}</p></div>
+    <button type="button" onClick={onRemove} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label="Remove attachment"><Trash2 size={16} /></button>
   </div>;
 }
 
@@ -287,6 +306,11 @@ function ShapeVisual({ type, color, size }) {
 
 function plainText(value) {
   const element = document.createElement("div"); element.innerHTML = value || ""; return (element.textContent || "").trim();
+}
+
+function existingAttachment(item) {
+  if (!item.mediaUrl) return null;
+  return { type: item.mediaType, preview: item.mediaUrl.startsWith("/") ? `${useURL}${item.mediaUrl}` : item.mediaUrl, url: item.mediaUrl, name: "Existing attachment" };
 }
 
 function SelectField({ label, value, onChange, options = [], placeholder, disabled, error }) {
