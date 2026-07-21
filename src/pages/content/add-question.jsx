@@ -3,13 +3,21 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import {
   AlertCircle,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
   Check,
   FileText,
   Image,
+  Italic,
+  List,
+  ListOrdered,
   Loader2,
   Music2,
   Paperclip,
   Trash2,
+  Underline,
   Video,
   X,
 } from "lucide-react";
@@ -17,6 +25,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import PageNavigation from "../../components/page-navigation";
 
 const EMPTY_OPTIONS = ["", "", "", ""];
+const EMPTY_SHAPES = { question: null, option0: null, option1: null, option2: null, option3: null };
+const SHAPES = ["circle", "square", "rectangle", "triangle", "star", "hexagon"];
 const MEDIA_TYPES = [
   { id: "image", label: "Image", help: "JPG, PNG, WEBP or GIF", accept: "image/*", icon: Image },
   { id: "audio", label: "Audio", help: "MP3, WAV, M4A or OGG", accept: "audio/*", icon: Music2 },
@@ -39,6 +49,7 @@ export default function AddQuestion() {
     status: "published",
   });
   const [options, setOptions] = useState(EMPTY_OPTIONS);
+  const [shapes, setShapes] = useState(EMPTY_SHAPES);
   const [correctAnswer, setCorrectAnswer] = useState(null);
   const [ageGroups, setAgeGroups] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -93,15 +104,15 @@ export default function AddQuestion() {
   }, []);
 
   const completeness = useMemo(() => {
-    const checks = [form.questionText.trim() || attachments.question, options.every((option, index) => option.trim() || attachments[`option${index}`]), correctAnswer !== null, form.ageGroupId, form.categoryId, form.levelId];
+    const checks = [plainText(form.questionText) || attachments.question || shapes.question, options.every((option, index) => plainText(option) || attachments[`option${index}`] || shapes[`option${index}`]), correctAnswer !== null, form.ageGroupId, form.categoryId, form.levelId];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  }, [form, options, correctAnswer, attachments]);
+  }, [form, options, correctAnswer, attachments, shapes]);
 
   const validate = () => {
     const next = {};
-    if (!attachments.question && form.questionText.trim().length < 5) next.questionText = "Enter a clear question or attach question media.";
-    if (options.some((option, index) => !option.trim() && !attachments[`option${index}`])) next.options = "Add text or media for every answer option.";
-    const textOptions = options.map((option) => option.trim().toLowerCase()).filter(Boolean);
+    if (!attachments.question && !shapes.question && plainText(form.questionText).length < 5) next.questionText = "Enter a clear question, attach media, or add a shape.";
+    if (options.some((option, index) => !plainText(option) && !attachments[`option${index}`] && !shapes[`option${index}`])) next.options = "Add text, media, or a shape for every answer option.";
+    const textOptions = options.map((option) => plainText(option).toLowerCase()).filter(Boolean);
     if (new Set(textOptions).size !== textOptions.length) next.options = "Text answer options must be unique.";
     if (correctAnswer === null) next.correctAnswer = "Select the correct answer.";
     if (!form.ageGroupId) next.ageGroupId = "Select an age group.";
@@ -125,13 +136,14 @@ export default function AddQuestion() {
     if (!validate()) return;
     setSubmitting(true);
     const body = new FormData();
-    body.append("questionText", form.questionText.trim());
+    body.append("questionText", form.questionText);
     body.append("explanation", form.explanation.trim());
     body.append("ageGroupId", form.ageGroupId);
     body.append("categoryId", form.categoryId);
     body.append("levelId", form.levelId);
     body.append("status", form.status);
-    body.append("options", JSON.stringify(options.map((text, index) => ({ text: text.trim(), isCorrect: index === correctAnswer, mediaType: attachments[`option${index}`]?.type || null }))));
+    body.append("shape", JSON.stringify(shapes.question));
+    body.append("options", JSON.stringify(options.map((text, index) => ({ text, isCorrect: index === correctAnswer, mediaType: attachments[`option${index}`]?.type || null, shape: shapes[`option${index}`] }))));
     if (attachments.question) body.append("questionMedia", attachments.question.file, attachments.question.file.name);
     body.append("questionMediaType", attachments.question?.type || "");
     options.forEach((_, index) => { const item = attachments[`option${index}`]; if (item) body.append(`optionMedia${index}`, item.file, item.file.name); });
@@ -167,15 +179,17 @@ export default function AddQuestion() {
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
               <div className="mb-6 flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 font-bold text-purple-700">1</span><div><h2 className="font-bold text-slate-900">Question and answers</h2><p className="text-sm text-slate-500">Write one clear prompt and four distinct choices.</p></div></div>
               <div className="flex items-center justify-between gap-3"><label className="text-sm font-semibold text-slate-700">Question <span className="text-red-500">*</span></label><MediaButton target="question" attachment={attachments.question} onChange={setAttachment} /></div>
-              <textarea rows="4" maxLength="500" value={form.questionText} onChange={(e) => update("questionText", e.target.value)} placeholder="Type the question, attach media, or use both..." className={`${fieldClass} resize-none ${errors.questionText ? "border-red-400" : ""}`} />
+              <RichTextEditor value={form.questionText} onChange={(value) => update("questionText", value)} placeholder="Type the question, add formatting, media, or a shape..." error={errors.questionText} />
+              <ShapePicker value={shapes.question} onChange={(shape) => setShapes((current) => ({ ...current, question: shape }))} />
               {attachments.question && <AttachmentPreview attachment={attachments.question} onRemove={() => setAttachment("question", null)} />}
-              <div className="mt-1 flex justify-between text-xs"><span className="text-red-500">{errors.questionText}</span><span className="text-slate-400">{form.questionText.length}/500</span></div>
+              <div className="mt-1 flex justify-between text-xs"><span className="text-red-500">{errors.questionText}</span><span className="text-slate-400">Rich text supported</span></div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {options.map((option, index) => (
                   <div key={index} className={`rounded-xl border p-3 transition ${correctAnswer === index ? "border-emerald-400 bg-emerald-50" : "border-slate-200"}`}>
                     <div className="mb-3 flex items-center justify-between gap-2"><span className="text-xs font-bold uppercase tracking-wide text-slate-500">Option {String.fromCharCode(65 + index)}</span><div className="flex items-center gap-2"><MediaButton compact target={`option${index}`} attachment={attachments[`option${index}`]} onChange={setAttachment} /><button type="button" onClick={() => { setCorrectAnswer(index); setErrors((current) => ({ ...current, correctAnswer: "" })); }} className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${correctAnswer === index ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-emerald-100"}`}><Check size={13} />{correctAnswer === index ? "Correct" : "Mark correct"}</button></div></div>
-                    <input value={option} maxLength="180" onChange={(e) => { const next = [...options]; next[index] = e.target.value; setOptions(next); setErrors((current) => ({ ...current, options: "" })); }} placeholder="Type an answer or attach media..." className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400" />
+                    <RichTextEditor compact value={option} onChange={(value) => { const next = [...options]; next[index] = value; setOptions(next); setErrors((current) => ({ ...current, options: "" })); }} placeholder="Type and format an answer..." />
+                    <ShapePicker compact value={shapes[`option${index}`]} onChange={(shape) => setShapes((current) => ({ ...current, [`option${index}`]: shape }))} />
                     {attachments[`option${index}`] && <AttachmentPreview attachment={attachments[`option${index}`]} onRemove={() => setAttachment(`option${index}`, null)} compact />}
                   </div>
                 ))}
@@ -238,6 +252,41 @@ function AttachmentPreview({ attachment, onRemove, compact = false }) {
     <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-700">{attachment.file.name}</p><p className="mt-0.5 text-xs capitalize text-slate-400">{attachment.type} · {(attachment.file.size / 1024 / 1024).toFixed(2)} MB</p></div>
     <button type="button" onClick={onRemove} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label={`Remove ${attachment.file.name}`}><Trash2 size={16} /></button>
   </div>;
+}
+
+function RichTextEditor({ value, onChange, placeholder, error, compact = false }) {
+  const editorRef = useRef(null);
+  useEffect(() => { if (editorRef.current && editorRef.current.innerHTML !== value && document.activeElement !== editorRef.current) editorRef.current.innerHTML = value; }, [value]);
+  const command = (name, commandValue) => { editorRef.current?.focus(); document.execCommand(name, false, commandValue); onChange(editorRef.current?.innerHTML || ""); };
+  const tools = [
+    [Bold, "Bold", "bold"], [Italic, "Italic", "italic"], [Underline, "Underline", "underline"],
+    [List, "Bullet list", "insertUnorderedList"], [ListOrdered, "Numbered list", "insertOrderedList"],
+    [AlignLeft, "Align left", "justifyLeft"], [AlignCenter, "Align center", "justifyCenter"], [AlignRight, "Align right", "justifyRight"],
+  ];
+  return <div className={`mt-2 overflow-hidden rounded-xl border bg-white transition focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-100 ${error ? "border-red-400" : "border-slate-200"}`}>
+    <div className="flex flex-wrap gap-1 border-b border-slate-100 bg-slate-50 p-1.5">{tools.map(([Icon, label, name]) => <button key={name} type="button" title={label} aria-label={label} onMouseDown={(event) => { event.preventDefault(); command(name); }} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white hover:text-purple-600 hover:shadow-sm"><Icon size={15}/></button>)}</div>
+    <div ref={editorRef} contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" data-placeholder={placeholder} onInput={(event) => onChange(event.currentTarget.innerHTML)} className={`${compact ? "min-h-16 p-2.5" : "min-h-28 p-4"} rich-editor text-sm leading-6 text-slate-800 outline-none empty:before:pointer-events-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]`} />
+  </div>;
+}
+
+function ShapePicker({ value, onChange, compact = false }) {
+  const [open, setOpen] = useState(false);
+  const color = value?.color || "#8b5cf6";
+  return <div className="mt-3"><button type="button" onClick={() => setOpen((current) => !current)} className={`flex items-center gap-2 rounded-lg border border-slate-200 bg-white font-semibold text-slate-600 transition hover:border-purple-300 ${compact ? "px-2 py-1.5 text-xs" : "px-3 py-2 text-sm"}`}><ShapeVisual type={value?.type || "circle"} color={color} size={18}/>{value ? `Edit ${value.type}` : "Add shape"}</button>
+    {open && <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3"><div className="flex flex-wrap gap-2">{SHAPES.map((type) => <button key={type} type="button" title={type} onClick={() => onChange({ type, color })} className={`flex h-10 w-10 items-center justify-center rounded-lg border bg-white transition ${value?.type === type ? "border-purple-500 ring-2 ring-purple-100" : "border-slate-200 hover:border-purple-300"}`}><ShapeVisual type={type} color={color} size={25}/></button>)}</div><div className="mt-3 flex items-center gap-3"><label className="text-xs font-bold text-slate-500">Fill color</label><input type="color" value={color} onChange={(event) => onChange({ type: value?.type || "circle", color: event.target.value })} className="h-9 w-12 cursor-pointer rounded border border-slate-200 bg-white p-1"/>{value && <button type="button" onClick={() => { onChange(null); setOpen(false); }} className="ml-auto text-xs font-bold text-red-500">Remove shape</button>}</div></div>}
+    {value && <div className="mt-2 flex min-h-20 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white"><ShapeVisual type={value.type} color={value.color} size={compact ? 58 : 76}/></div>}
+  </div>;
+}
+
+function ShapeVisual({ type, color, size }) {
+  const clips = { circle: "circle(50%)", square: "none", rectangle: "none", triangle: "polygon(50% 0,100% 100%,0 100%)", star: "polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 93%,50% 72%,21% 93%,32% 57%,2% 35%,39% 35%)", hexagon: "polygon(25% 7%,75% 7%,100% 50%,75% 93%,25% 93%,0 50%)" };
+  const width = type === "rectangle" ? size * 1.35 : size;
+  const height = type === "rectangle" ? size * 0.7 : size;
+  return <span aria-label={`${color} ${type}`} role="img" style={{ display: "inline-block", width, height, backgroundColor: color, clipPath: clips[type], borderRadius: type === "square" || type === "rectangle" ? Math.max(3, size / 10) : 0 }} />;
+}
+
+function plainText(value) {
+  const element = document.createElement("div"); element.innerHTML = value || ""; return (element.textContent || "").trim();
 }
 
 function SelectField({ label, value, onChange, options = [], placeholder, disabled, error }) {
