@@ -24,7 +24,7 @@ export default function CategoryLevels() {
   const [deleting, setDeleting] = useState(null);
   const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState(() => localStorage.getItem("cedugames-level-view") || "cards");
+  const [view, setView] = useState("table");
 
   const load = async () => {
     if (!ageId || !categoryId) return;
@@ -60,7 +60,7 @@ export default function CategoryLevels() {
   };
   const addQuestion = (level) => navigate(`/content/add-question?ageGroup=${ageId}&category=${categoryId}&level=${level.id}`);
   const preview = (level) => navigate(`/categories/level-questions?ageGroup=${ageId}&category=${categoryId}&level=${level.id}`);
-  const changeView = (nextView) => { setView(nextView); localStorage.setItem("cedugames-level-view", nextView); };
+  const changeView = (nextView) => setView(nextView);
 
   return <div className="mx-auto w-full max-w-[1600px] px-4 pb-10 sm:px-6">
     <PageNavigation items={[{ label: "Age Groups", to: "/categories" }, { label: age?.name || "Categories", to: `/categories/age-categories?ageGroup=${ageId}` }, { label: category?.name || "Levels" }]} title={category?.name || "Category"} description={category?.description || "Manage the levels available in this category."} action={<button onClick={() => open()} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-purple-700"><Plus size={18}/>Add Level</button>} />
@@ -76,7 +76,7 @@ function LevelCard({ level, onAdd, onPreview, onEdit, onDelete }) {
     <div className="h-1.5 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-400"/>
     <div className="flex flex-1 flex-col p-4"><div className="flex items-start justify-between gap-2"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-600 transition group-hover:rotate-3 group-hover:scale-105"><Layers3 size={21}/></span><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">LEVEL {level.level_number}</span></div>
       <h2 className="mt-4 line-clamp-2 text-base font-extrabold leading-5 text-slate-900">{level.name}</h2><p className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-slate-500">{level.description || "No description provided."}</p>
-      <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500"><span className="flex items-center gap-1 rounded-lg bg-purple-50 px-2 py-1.5 text-purple-700"><CircleHelp size={12}/>{level.question_count ?? 0} questions</span><span className="flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1.5 text-amber-700"><Trophy size={12}/>{level.points_per_question ?? 10} pts</span><span className="flex items-center gap-1 rounded-lg bg-sky-50 px-2 py-1.5 text-sky-700"><Clock3 size={12}/>{level.time_limit_seconds ?? 30}s</span></div>
+      <div className="mt-3 grid grid-cols-3 gap-1 text-[10px] font-bold"><span title={`${level.question_count ?? 0} questions`} className="flex min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-purple-50 px-1.5 py-2 text-purple-700"><CircleHelp size={12}/>{level.question_count ?? 0} Q</span><span title={`${level.points_per_question ?? 10} points`} className="flex min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-amber-50 px-1.5 py-2 text-amber-700"><Trophy size={12}/>{level.points_per_question ?? 10} pts</span><span title={`${level.time_limit_seconds ?? 30} seconds`} className="flex min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-sky-50 px-1.5 py-2 text-sky-700"><Clock3 size={12}/>{level.time_limit_seconds ?? 30}s</span></div>
       <button onClick={onAdd} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-purple-600"><Sparkles size={14}/>Create question</button>
       <div className="mt-auto grid grid-cols-3 gap-1 border-t border-slate-100 pt-3"><Action icon={Eye} label="Preview" onClick={onPreview} className="text-slate-600 hover:bg-slate-100"/><Action icon={Pencil} label="Edit" onClick={onEdit} className="text-purple-600 hover:bg-purple-50"/><Action icon={Trash2} label="Delete" onClick={onDelete} className="text-red-500 hover:bg-red-50"/></div>
     </div>

@@ -1,222 +1,55 @@
-import React, { useState } from "react";
-import { Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { FileQuestion, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import CTA from "../../assets/cta.png";
-import { DeleteUser, SuccessfulDelete } from "../../components/modal";
-
-const questions = [
-  {
-    question: "What is the capital of France?",
-    category: "Geography",
-    level: "Beginner",
-  },
-  {
-    question: "Which animal is known as the 'King of the Jungle'?",
-    category: "Animals",
-    level: "Beginner",
-  },
-  {
-    question: "What is the name of the largest ocean on Earth?",
-    category: "Geography",
-    level: "Intermediate",
-  },
-  {
-    question: "How many continents are there?",
-    category: "Geography",
-    level: "Intermediate",
-  },
-  {
-    question: "What is the chemical symbol for gold?",
-    category: "Science",
-    level: "Advanced",
-  },
-  {
-    question: "Who painted the Mona Lisa?",
-    category: "Art",
-    level: "Advanced",
-  },
-  {
-    question: "What is the name of the closest star to Earth?",
-    category: "Science",
-    level: "Beginner",
-  },
-  {
-    question: "Which planet is known as the 'Red Planet'?",
-    category: "Science",
-    level: "Intermediate",
-  },
-  {
-    question: "What is the name of the longest river in the world?",
-    category: "Geography",
-    level: "Advanced",
-  },
-];
+import { toast } from "react-toastify";
+import ConfirmDialog from "../../components/confirm-dialog";
 
 export default function QuestionsPage() {
-  const [openDelete, setOpenDelete] = useState(false);
-  const [openSuccessfulDeleteModal, setOpenSuccessfulDeleteModal] =
-    useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  const confirmDelete = () => {
-    setOpenDelete(false);
-    setOpenSuccessfulDeleteModal(true);
+  const load = () => {
+    setLoading(true); setError("");
+    axios.get("/admin/questions")
+      .then(({ data }) => setQuestions(data.questions || []))
+      .catch((requestError) => setError(requestError.response?.data?.message || "Unable to load questions."))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, []);
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return questions;
+    return questions.filter((question) => [question.text, question.category, question.level, question.status].some((value) => String(value || "").toLowerCase().includes(query)));
+  }, [questions, search]);
+
+  const remove = async () => {
+    if (!deleting) return;
+    setBusy(true);
+    try { await axios.delete(`/admin/questions/${deleting.id}`); setQuestions((current) => current.filter((question) => question.id !== deleting.id)); toast.success("Question deleted."); setDeleting(null); }
+    catch (requestError) { toast.error(requestError.response?.data?.message || "Unable to delete question."); }
+    finally { setBusy(false); }
   };
 
-  const closeSuccessfulDeleteModal = () => setOpenSuccessfulDeleteModal(false);
-
-  const openModal = () => setOpenDelete(true);
-
-  return (
-    <div
-      className="p-8 bg-white font-Outfit max-w-7xl mx-auto rounded-xl
-     "
-    >
-      <div className=" max-w-6xl mx-auto">
-        <div className=" flex justify-between mb-2">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Questions</h1>
-
-          <Link to="/content/add-question">
-            <button className="px-4 py-2 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition">
-              Add Question
-            </button>
-          </Link>
-        </div>
-
-        <div className="flex items-center justify-between mb-6">
-          {/* Search */}
-          <div className="relative w-full ">
-            <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search questions"
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#F0F2F5] border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-            />
-          </div>
-        </div>
-
-        <div className=" rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <table className="w-full text-left ">
-            <thead>
-              <tr className=" border-b">
-                <th className="py-3 px-4 text-sm font-semibold text-gray-600">
-                  Question
-                </th>
-                <th className="py-3 px-4 text-sm font-semibold text-gray-600">
-                  Category
-                </th>
-                <th className="py-3 px-4 text-sm font-semibold text-gray-600">
-                  Level
-                </th>
-                <th className="py-3 px-4 text-sm font-semibold text-gray-600">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {questions.map((item, index) => (
-                <tr
-                  key={index}
-                  className="border-b text-base hover:bg-gray-50 transition"
-                >
-                  <td className="py-4 px-4 font-[400] text-[#121217]">
-                    {item.question}
-                  </td>
-
-                  <td className="py-4 px-4">
-                    <span className=" text-gray-600 cursor-pointer hover:underline">
-                      {item.category}
-                    </span>
-                  </td>
-
-                  <td className="py-4 px-4 text-gray-600">{item.level}</td>
-
-                  {/* ACTIONS */}
-                  <td className="py-4 px-4 text-sm">
-                    <Link to="/content/edit-question">
-                      <span className="text-purple-600 cursor-pointer hover:underline mr-3">
-                        Edit
-                      </span>
-                    </Link>
-                    <span
-                      onClick={openModal}
-                      className="text-red-500 cursor-pointer hover:underline"
-                    >
-                      Delete
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <DeleteUser
-            isOpen={openDelete}
-            onClose={() => setOpenDelete(false)}
-          >
-            <div className="w-28 h-28 mx-auto">
-              <img
-                src={CTA}
-                alt="cta"
-                className="w-full h-full "
-              />
-            </div>
-            <div className="mx-auto text-center">
-              <p className="text-2xl font-bold py-2">Confirm Action</p>
-              <p>
-                Are you sure you want to delete user? Action cannot be reversed
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-4 mt-4">
-              <button
-                className="border border-[#995BE2] text-[#995BE2] text-[16px] font-medium py-2 px-4 rounded-xl w-[130px]"
-                onClick={() => setOpenDelete(false)}
-              >
-                No
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="text-[16px] bg-[#995BE2] text-white font-medium py-2 px-4 rounded-[10px] w-[130px]"
-              >
-                Yes
-              </button>
-            </div>
-          </DeleteUser>
-
-          <SuccessfulDelete
-            isOpen={openSuccessfulDeleteModal}
-            onClose={closeSuccessfulDeleteModal}
-          >
-            <div>
-              <div>
-                <img
-                  src={CTA}
-                  alt=" verify delete"
-                  className=" w-28 h-28 mx-auto"
-                />
-              </div>
-
-              <h2 className="text-[#000000] text-center text-[22px] leading-[27px] font-bold mb-4">
-                Action Completed!
-              </h2>
-              <p className="text-[#000000] text-center mb-4  text-[14px] leading-[18.9px]">
-                <span className="font-bold">User (Name)</span> has been deleted
-                succcessfully,
-              </p>
-
-              <div className=" mx-auto justify-center flex items-center">
-                <button
-                  onClick={() => setOpenSuccessfulDeleteModal(false)}
-                  className=" bg-[#995BE2]  w-[304px]  text-white px-6 py-2 "
-                >
-                  Okay
-                </button>
-              </div>
-            </div>
-          </SuccessfulDelete>
-        </div>
-      </div>
+  return <div className="mx-auto max-w-7xl rounded-2xl bg-white p-5 font-Outfit shadow-sm sm:p-8">
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-3xl font-black text-slate-900">Questions</h1><p className="mt-1 text-sm text-slate-500">{questions.length} question{questions.length === 1 ? "" : "s"} · newest uploads appear first</p></div><Link to="/content/add-question" className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-purple-700"><Plus size={18}/>Add Question</Link></div>
+    <div className="relative mt-7"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/><input value={search} onChange={(event) => setSearch(event.target.value)} type="search" placeholder="Search by question, category, level, or status" className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-4 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100"/></div>
+    <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200">
+      {loading ? <State icon={Loader2} message="Loading live questions..." spin/> : error ? <State icon={FileQuestion} message={error} action={<button onClick={load} className="mt-4 rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white">Try again</button>}/> : filtered.length ? <table className="w-full min-w-[900px] text-left"><thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-4">Question</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Level</th><th className="px-5 py-4">Status</th><th className="px-5 py-4">Uploaded</th><th className="px-5 py-4 text-right">Actions</th></tr></thead><tbody className="divide-y divide-slate-100">{filtered.map((question) => <QuestionRow key={question.id} question={question} onDelete={() => setDeleting(question)}/>)}</tbody></table> : <State icon={FileQuestion} message={search ? "No questions match your search." : "No questions have been added yet."} />}
     </div>
-  );
+    <ConfirmDialog open={Boolean(deleting)} loading={busy} onCancel={() => setDeleting(null)} onConfirm={remove} title="Delete question?" message={`Delete “${deleting?.text || "this question"}”? This cannot be undone.`}/>
+  </div>;
 }
+
+function QuestionRow({ question, onDelete }) {
+  const editUrl = `/content/add-question?ageGroup=${question.ageGroupId}&category=${question.categoryId}&level=${question.levelId}&question=${question.id}`;
+  return <tr className="transition hover:bg-purple-50/30"><td className="max-w-xl px-5 py-4"><p className="line-clamp-2 font-semibold text-slate-900">{question.text}</p></td><td className="px-5 py-4 text-sm text-slate-600">{question.category}</td><td className="px-5 py-4"><p className="text-sm font-semibold text-slate-700">{question.level}</p><p className="text-xs text-slate-400">Level {question.levelNumber}</p></td><td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${question.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{question.status}</span></td><td className="whitespace-nowrap px-5 py-4 text-xs text-slate-500">{formatDate(question.createdAt)}</td><td className="px-5 py-4"><div className="flex justify-end gap-2"><Link to={editUrl} className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold text-purple-600 transition hover:bg-purple-50"><Pencil size={14}/>Edit</Link><button onClick={onDelete} className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold text-red-500 transition hover:bg-red-50"><Trash2 size={14}/>Delete</button></div></td></tr>;
+}
+
+function State({ icon: Icon, message, spin = false, action }) { return <div className="flex min-h-64 flex-col items-center justify-center p-10 text-center text-slate-500"><Icon className={spin ? "animate-spin text-purple-600" : "text-purple-400"} size={30}/><p className="mt-3 text-sm font-semibold">{message}</p>{action}</div>; }
+function formatDate(value) { if (!value) return "—"; return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)); }
