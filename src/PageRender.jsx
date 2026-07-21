@@ -25,6 +25,7 @@ const PageRender = () => {
     "age-categories",
     "add-level",
     "view-categories",
+    "level-questions",
     "edit-categories",
     "new-notification",
     "view-notification",
