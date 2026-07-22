@@ -1,0 +1,12 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
+
+const inputClass="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100";
+
+export default function LifeSettings(){
+ const[form,setForm]=useState(null),[saving,setSaving]=useState(false);
+ useEffect(()=>{axios.get("/admin/coins/gameplay-settings").then(({data})=>{const s=data.settings;setForm({passingScorePercent:s.passing_score_percent,maxLives:s.max_lives,refillCoinCost:s.refill_coin_cost})}).catch(e=>toast.error(e.response?.data?.message||"Unable to load life settings."))},[]);
+ const save=async e=>{e.preventDefault();setSaving(true);try{await axios.put("/admin/coins/gameplay-settings",Object.fromEntries(Object.entries(form).map(([key,value])=>[key,Number(value)])));toast.success("Life deduction settings saved.")}catch(e){toast.error(e.response?.data?.message||e.response?.data?.errors?.[0]?.message||"Unable to save life settings.")}finally{setSaving(false)}};
+ return <section className="rounded-2xl border border-red-100 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold">Failed-level life deduction</h2><p className="mt-1 max-w-3xl text-sm text-slate-500">A score below the pass mark removes one heart. When the last heart is used, the refill cost is deducted automatically and all lives return. Players without enough coins are directed to the coin shop.</p>{!form?<p className="py-5 text-slate-400">Loading settings…</p>:<form onSubmit={save} className="mt-5 grid items-end gap-4 md:grid-cols-4"><label className="text-sm font-semibold">Pass mark (%)<input type="number" min="0" max="100" required value={form.passingScorePercent} onChange={e=>setForm(x=>({...x,passingScorePercent:e.target.value}))} className={inputClass}/></label><label className="text-sm font-semibold">Maximum lives<input type="number" min="1" max="10" required value={form.maxLives} onChange={e=>setForm(x=>({...x,maxLives:e.target.value}))} className={inputClass}/></label><label className="text-sm font-semibold">Full refill cost (coins)<input type="number" min="1" required value={form.refillCoinCost} onChange={e=>setForm(x=>({...x,refillCoinCost:e.target.value}))} className={inputClass}/></label><button disabled={saving} className="rounded-xl bg-purple-600 px-5 py-2.5 font-bold text-white disabled:opacity-60">{saving?"Saving…":"Save life settings"}</button></form>}</section>;
+}
