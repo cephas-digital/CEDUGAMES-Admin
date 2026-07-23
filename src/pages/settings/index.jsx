@@ -9,6 +9,7 @@ import {
 import CTA from "../../assets/cta.png";
 import SettingsPage from "../../components/account-setting/other-setting";
 import { FullBTN } from "../../components/button.jsx/Btn";
+import BadgeSettings from "../../components/account-setting/badge-settings";
 
 export default function AccountProfile() {
   const [activeTab, setActiveTab] = useState("Update Profile");
@@ -341,7 +342,9 @@ export default function AccountProfile() {
         </div>
       )}
 
-      {activeTab === "Badge Settings" && (
+      {activeTab === "Badge Settings" && <BadgeSettings />}
+
+      {activeTab === "__Legacy Badge Settings" && (
         <div>
           {!editbadge ? (
             <div className=" p-6">
