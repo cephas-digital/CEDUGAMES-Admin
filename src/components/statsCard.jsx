@@ -146,7 +146,7 @@ function Card({ title, value, icon, change, gradient }) {
         {/* Icon & Change */}
         <div className="flex justify-between items-start">
           <div className="p-3 rounded-xl bg-gray-50">{icon}</div>
-          <p className="text-green-600 font-semibold text-sm">{change}</p>
+          <p className={`${String(change).startsWith("-") ? "text-red-600" : "text-green-600"} font-semibold text-sm`}>{change}</p>
         </div>
 
         <p className="text-gray-500 text-sm font-medium">{title}</p>

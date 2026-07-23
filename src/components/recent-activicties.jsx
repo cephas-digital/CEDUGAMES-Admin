@@ -1,21 +1,8 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React from "react";
 import { Link } from "react-router-dom";
 import ActivityItem from "./activity-item";
 
-export default function RecentActivities() {
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    axios.get("/auth/admin/activities?limit=4&page=1")
-      .then(({ data }) => { if (active) setActivities(data?.activities || []); })
-      .catch(() => { if (active) setActivities([]); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
-
+export default function RecentActivities({ data: activities = [], loading = false }) {
   return (
     <div className="rounded-xl border bg-white p-5 shadow-sm">
       <div className="mb-5 flex items-center justify-between">
