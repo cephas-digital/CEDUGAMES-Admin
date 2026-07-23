@@ -1,241 +1,31 @@
-import React, { useState } from "react";
-import leaders from "../../assets/leaders.png";
+import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { Link, useSearchParams } from "react-router-dom";
 import Table from "../../components/table";
-import CTA from "../../assets/cta.png";
-import { DeleteUser, SuccessfulDelete } from "../../components/modal";
 
-const UserProfile = () => {
-  const [openDelete, setOpenDelete] = useState(false);
-  const [openSuccessfulDeleteModal, setOpenSuccessfulDeleteModal] =
-    useState(false);
+const displayDate=value=>value?new Date(value).toLocaleString():"Never";
+const money=(minor,currency="NGN")=>new Intl.NumberFormat("en-NG",{style:"currency",currency}).format(Number(minor||0)/100);
+const Detail=({label,value})=><div><p className="text-gray-500">{label}</p><p className="text-gray-900 mt-1 font-medium">{value??"Not provided"}</p></div>;
+const Metric=({label,value})=><div className="rounded-xl border bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">{label}</p><p className="mt-1 text-2xl font-black text-gray-900">{value}</p></div>;
 
-  const confirmDelete = () => {
-    setOpenDelete(false);
-    setOpenSuccessfulDeleteModal(true);
-  };
-
-  const closeSuccessfulDeleteModal = () => setOpenSuccessfulDeleteModal(false);
-
-  const openModal = () => setOpenDelete(true);
-  const gameProgress = [
-    {
-      game: "Memory Match",
-      level: "Level 5",
-      score: 1200,
-      lastPlayed: "2024-03-09",
-    },
-    {
-      game: "Puzzle Adventure",
-      level: "Level 10",
-      score: 2500,
-      lastPlayed: "2024-03-08",
-    },
-    {
-      game: "Coloring Fun",
-      level: "Completed",
-      score: "N/A",
-      lastPlayed: "2024-03-07",
-    },
-  ];
-
-  const columns = [
-    { label: "Game", accessor: "game" },
-
-    {
-      label: "Level",
-      accessor: "level",
-      render: (value) => (
-        <span className="text-blue-600 font-medium cursor-pointer hover:underline">
-          {value}
-        </span>
-      ),
-    },
-
-    { label: "Score", accessor: "score" },
-
-    { label: "Last Played", accessor: "lastPlayed" },
-  ];
-
-  return (
-    <div className="w-full max-w-6xl mx-auto py-12">
-      <h1 className="text-2xl font-semibold text-[#121217]">User Profile</h1>
-      <p className="text-[#61708A] text-sm mt-1">
-        Manage user details, activity, and game progress.
-      </p>
-
-      <div className="flex items-center justify-between mt-8">
-        <div className="flex items-center gap-4">
-          <div className="w-40 h-40">
-            <img
-              src={leaders}
-              alt="User Avatar"
-              className="w-full h-full rounded-full border border-gray-200 object-cover"
-            />
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Sarah Johnson</h2>
-            <p className="text-gray-500 text-sm">User ID: 1234567890</p>
-            <p className="text-gray-500 text-sm">Joined: 2023-01-15</p>
-          </div>
-        </div>
-
-        <div className="flex gap-4">
-          <button
-            onClick={openModal}
-            className="px-6 py-2 border border-[#9B5DE5] font-bold w-44 text-purple-600 rounded-xl hover:bg-purple-50 text-sm"
-          >
-            Delete user
-          </button>
-
-          <button
-            onClick={openModal}
-            className="px-6 py-2 bg-purple-600 text-white rounded-xl w-44 hover:bg-purple-700 text-sm"
-          >
-            Suspend user
-          </button>
-        </div>
-      </div>
-
-      <DeleteUser
-        isOpen={openDelete}
-        onClose={() => setOpenDelete(false)}
-      >
-        <div className="w-28 h-28 mx-auto">
-          <img
-            src={CTA}
-            alt="cta"
-            className="w-full h-full "
-          />
-        </div>
-        <div className="mx-auto text-center">
-          <p className="text-2xl font-bold py-2">Confirm Action</p>
-          <p>Are you sure you want to delete user? Action cannot be reversed</p>
-        </div>
-
-        <div className="flex items-center justify-center gap-4 mt-4">
-          <button
-            className="border border-[#995BE2] text-[#995BE2] text-[16px] font-medium py-2 px-4 rounded-xl w-[130px]"
-            onClick={() => setOpenDelete(false)}
-          >
-            No
-          </button>
-          <button
-            onClick={confirmDelete}
-            className="text-[16px] bg-[#995BE2] text-white font-medium py-2 px-4 rounded-[10px] w-[130px]"
-          >
-            Yes
-          </button>
-        </div>
-      </DeleteUser>
-
-      <SuccessfulDelete
-        isOpen={openSuccessfulDeleteModal}
-        onClose={closeSuccessfulDeleteModal}
-      >
-        <div>
-          <div>
-            <img
-              src={CTA}
-              alt=" verify delete"
-              className=" w-28 h-28 mx-auto"
-            />
-          </div>
-
-          <h2 className="text-[#000000] text-center text-[22px] leading-[27px] font-bold mb-4">
-            Action Completed!
-          </h2>
-          <p className="text-[#000000] text-center mb-4  text-[14px] leading-[18.9px]">
-            <span className="font-bold">User (Name)</span> has been deleted
-            succcessfully,
-          </p>
-
-          <div className=" mx-auto justify-center flex items-center">
-            <button
-              onClick={() => setOpenSuccessfulDeleteModal(false)}
-              className=" bg-[#995BE2]  w-[304px]  text-white px-6 py-2 "
-            >
-              Okay
-            </button>
-          </div>
-        </div>
-      </SuccessfulDelete>
-
-      {/* USER DETAILS */}
-      <h3 className="text-lg font-semibold mt-12 mb-4">User Details</h3>
-
-      <div className="grid grid-cols-2 gap-y-8 border-t border-b py-8 text-sm">
-        <div>
-          <p className="text-gray-500">Email</p>
-          <p className="text-gray-900 mt-1">sarah.johnson@email.com</p>
-        </div>
-
-        <div>
-          <p className="text-gray-500">Phone</p>
-          <p className="text-gray-900 mt-1">+1 (555) 987-6543</p>
-        </div>
-
-        <div>
-          <p className="text-gray-500">Age</p>
-          <p className="text-gray-900 mt-1">9</p>
-        </div>
-
-        <div>
-          <p className="text-gray-500">Location</p>
-          <p className="text-gray-900 mt-1">New York, USA</p>
-        </div>
-      </div>
-
-      {/* GAME PROGRESS */}
-      <h3 className="text-2xl font-semibold mt-12 mb-4">Game Progress</h3>
-
-      {/* <div className="overflow-x-auto border border-gray-200 rounded-xl">
-
-
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">
-                Game
-              </th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">
-                Level
-              </th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">
-                Score
-              </th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">
-                Last Played
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {gameProgress.map((item, idx) => (
-              <tr
-                key={idx}
-                className="border-t border-gray-200"
-              >
-                <td className="py-4 px-4">{item.game}</td>
-                <td className="py-4 px-4">
-                  <span className="text-blue-600 cursor-pointer hover:underline">
-                    {item.level}
-                  </span>
-                </td>
-                <td className="py-4 px-4">{item.score}</td>
-                <td className="py-4 px-4">{item.lastPlayed}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div> */}
-
-      <Table
-        columns={columns}
-        data={gameProgress}
-      />
-    </div>
-  );
+const UserProfile=()=>{
+ const[params]=useSearchParams(),id=params.get("id");
+ const[data,setData]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState("");
+ useEffect(()=>{let active=true;if(!id){setError("No user was selected.");setLoading(false);return()=>{active=false}}axios.get(`/auth/admin/users/${encodeURIComponent(id)}`).then(({data:response})=>{if(active)setData(response)}).catch(e=>{if(active)setError(e.response?.data?.message||"Unable to load this user.")}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[id]);
+ const user=data?.user,performance=user?.performance||{},purchases=user?.purchases||{};
+ const attempts=useMemo(()=>(data?.recentAttempts||[]).map(item=>({...item,game:item.category_name,level:`${item.level_name} (Level ${item.level_number})`,score:`${item.score_percent}%`,result:item.passed?"Passed":"Not passed",lastPlayed:displayDate(item.created_at)})),[data]);
+ const attemptColumns=[{label:"Game",accessor:"game"},{label:"Level",accessor:"level",render:value=><span className="text-blue-600 font-medium">{value}</span>},{label:"Score",accessor:"score"},{label:"Result",accessor:"result",render:(value,row)=><span className={`rounded-full px-3 py-1 text-xs font-bold ${row.passed?"bg-green-100 text-green-700":"bg-red-50 text-red-600"}`}>{value}</span>},{label:"XP",accessor:"xp_awarded"},{label:"Last Played",accessor:"lastPlayed"}];
+ const coinColumns=[{label:"Type",accessor:"type",render:value=><span className="capitalize">{value}</span>},{label:"Amount",accessor:"amount",render:value=><span className={Number(value)>=0?"text-green-600":"text-red-600"}>{Number(value)>0?"+":""}{Number(value).toLocaleString()}</span>},{label:"Balance",accessor:"balance_after",render:value=>Number(value).toLocaleString()},{label:"Details",accessor:"description"},{label:"Date",accessor:"created_at",render:displayDate}];
+ if(loading)return <div className="w-full max-w-6xl mx-auto py-24 text-center text-gray-500">Loading user profile...</div>;
+ if(error)return <div className="w-full max-w-6xl mx-auto py-12"><div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</div><Link to="/user-management" className="mt-5 inline-block font-bold text-purple-600">Back to users</Link></div>;
+ return <div className="w-full max-w-6xl mx-auto py-12">
+  <h1 className="text-2xl font-semibold text-[#121217]">User Profile</h1><p className="text-[#61708A] text-sm mt-1">Manage user details, activity, and game progress.</p>
+  <div className="flex flex-wrap items-center justify-between gap-6 mt-8"><div className="flex items-center gap-4"><div className="grid w-40 h-40 place-items-center rounded-full border-4 border-purple-500 bg-purple-100 text-6xl font-black text-purple-700">{user.name?.[0]?.toUpperCase()||"U"}</div><div><h2 className="text-2xl font-bold text-gray-900">{user.name}</h2><p className="text-gray-500 text-sm">@{user.username}</p><p className="text-gray-500 text-sm">User ID: {user.id}</p><p className="text-gray-500 text-sm">Joined: {displayDate(user.created_at)}</p></div></div><div className="flex gap-4"><span className={`px-6 py-2 border font-bold w-44 text-center rounded-xl text-sm ${user.is_verified?"border-green-300 bg-green-50 text-green-700":"border-yellow-300 bg-yellow-50 text-yellow-700"}`}>{user.is_verified?"Verified user":"Pending verification"}</span><span className="px-6 py-2 bg-purple-600 text-white rounded-xl w-44 text-center text-sm">{user.is_oauth?"Google account":"Email account"}</span></div></div>
+  <h3 className="text-lg font-semibold mt-12 mb-4">User Details</h3><div className="grid grid-cols-1 sm:grid-cols-2 gap-y-8 border-t border-b py-8 text-sm"><Detail label="Email" value={user.email}/><Detail label="Age" value={user.age}/><Detail label="Account verification" value={user.is_verified?"Verified":"Not verified"}/><Detail label="Sign-in method" value={user.is_oauth?"Google OAuth":"Email and password"}/><Detail label="Last profile update" value={displayDate(user.updated_at)}/><Detail label="Last played" value={displayDate(performance.last_played)}/></div>
+  <h3 className="text-xl font-semibold mt-12 mb-4">Account & Performance</h3><div className="grid grid-cols-2 gap-4 md:grid-cols-4"><Metric label="XP" value={Number(user.total_xp).toLocaleString()}/><Metric label="Coin balance" value={Number(user.coins_count).toLocaleString()}/><Metric label="Lives remaining" value={Number(user.lives_remaining).toLocaleString()}/><Metric label="Attempts" value={Number(performance.attempts).toLocaleString()}/><Metric label="Levels completed" value={Number(performance.completed_levels).toLocaleString()}/><Metric label="Average score" value={`${Number(performance.average_score)}%`}/><Metric label="Best score" value={`${Number(performance.best_score)}%`}/><Metric label="Correct answers" value={`${Number(performance.correct_answers).toLocaleString()} / ${Number(performance.questions_answered).toLocaleString()}`}/></div>
+  <h3 className="text-xl font-semibold mt-12 mb-4">Purchase Summary</h3><div className="grid grid-cols-2 gap-4 md:grid-cols-4"><Metric label="Amount spent" value={money(purchases.spent_minor)}/><Metric label="Coins purchased" value={Number(purchases.purchased_coins||0).toLocaleString()}/><Metric label="Completed purchases" value={Number(purchases.completed_purchases||0).toLocaleString()}/><Metric label="Pending purchases" value={Number(purchases.pending_purchases||0).toLocaleString()}/></div>
+  <h3 className="text-2xl font-semibold mt-12 mb-4">Recent Game Progress</h3>{attempts.length?<Table columns={attemptColumns} data={attempts}/>:<div className="rounded-xl border bg-white py-12 text-center text-gray-400">This user has not played a game yet.</div>}
+  <h3 className="text-2xl font-semibold mt-12 mb-4">Recent Coin Activity</h3>{data.recentCoinTransactions?.length?<Table columns={coinColumns} data={data.recentCoinTransactions}/>:<div className="rounded-xl border bg-white py-12 text-center text-gray-400">No coin activity recorded yet.</div>}
+ </div>;
 };
-
 export default UserProfile;
