@@ -21,7 +21,7 @@ const Index = () => {
   ];
   return <div className="lg:px-8"><div className="space-y-6">
     {error&&<div role="alert" className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-    <StatsCards data={stats}/>
+    <StatsCards data={stats} loading={loading}/>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><div className="lg:col-span-2"><RecentTransactions data={dashboard?.recentTransactions||[]} loading={loading}/></div><CoinPackages data={dashboard?.popularPackages||[]} loading={loading}/></div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><TopPlayers data={dashboard?.topPlayers||[]} loading={loading}/><div><RecentActivities data={dashboard?.recentActivities||[]} loading={loading}/></div></div>
   </div></div>;

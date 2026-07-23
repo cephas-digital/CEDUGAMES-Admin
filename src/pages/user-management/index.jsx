@@ -67,7 +67,7 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-4 px-8">
-      <StatsCard data={stats} />
+      <StatsCard data={stats} loading={loading} />
       {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {loading ? (
         <div className="rounded-xl bg-white p-12 text-center text-gray-500">Loading registered users...</div>

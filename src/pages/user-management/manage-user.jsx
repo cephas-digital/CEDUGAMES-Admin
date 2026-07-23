@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import Table from "../../components/table";
 
 const displayDate=value=>value?new Date(value).toLocaleString():"Never";
@@ -9,7 +10,7 @@ const Detail=({label,value})=><div><p className="text-gray-500">{label}</p><p cl
 const Metric=({label,value})=><div className="rounded-xl border bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">{label}</p><p className="mt-1 text-2xl font-black text-gray-900">{value}</p></div>;
 
 const UserProfile=()=>{
- const[params]=useSearchParams(),id=params.get("id");
+ const[params]=useSearchParams(),id=params.get("id"),navigate=useNavigate();
  const[data,setData]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState("");
  useEffect(()=>{let active=true;if(!id){setError("No user was selected.");setLoading(false);return()=>{active=false}}axios.get(`/auth/admin/users/${encodeURIComponent(id)}`).then(({data:response})=>{if(active)setData(response)}).catch(e=>{if(active)setError(e.response?.data?.message||"Unable to load this user.")}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[id]);
  const user=data?.user,performance=user?.performance||{},purchases=user?.purchases||{};
@@ -19,6 +20,7 @@ const UserProfile=()=>{
  if(loading)return <div className="w-full max-w-6xl mx-auto py-24 text-center text-gray-500">Loading user profile...</div>;
  if(error)return <div className="w-full max-w-6xl mx-auto py-12"><div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</div><Link to="/user-management" className="mt-5 inline-block font-bold text-purple-600">Back to users</Link></div>;
  return <div className="w-full max-w-6xl mx-auto py-12">
+  <button type="button" onClick={()=>navigate("/user-management")} className="mb-6 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm hover:border-purple-300 hover:text-purple-600"><ArrowLeft size={17}/>Back to users</button>
   <h1 className="text-2xl font-semibold text-[#121217]">User Profile</h1><p className="text-[#61708A] text-sm mt-1">Manage user details, activity, and game progress.</p>
   <div className="flex flex-wrap items-center justify-between gap-6 mt-8"><div className="flex items-center gap-4"><div className="grid w-40 h-40 place-items-center rounded-full border-4 border-purple-500 bg-purple-100 text-6xl font-black text-purple-700">{user.name?.[0]?.toUpperCase()||"U"}</div><div><h2 className="text-2xl font-bold text-gray-900">{user.name}</h2><p className="text-gray-500 text-sm">@{user.username}</p><p className="text-gray-500 text-sm">User ID: {user.id}</p><p className="text-gray-500 text-sm">Joined: {displayDate(user.created_at)}</p></div></div><div className="flex gap-4"><span className={`px-6 py-2 border font-bold w-44 text-center rounded-xl text-sm ${user.is_verified?"border-green-300 bg-green-50 text-green-700":"border-yellow-300 bg-yellow-50 text-yellow-700"}`}>{user.is_verified?"Verified user":"Pending verification"}</span><span className="px-6 py-2 bg-purple-600 text-white rounded-xl w-44 text-center text-sm">{user.is_oauth?"Google account":"Email account"}</span></div></div>
   <h3 className="text-lg font-semibold mt-12 mb-4">User Details</h3><div className="grid grid-cols-1 sm:grid-cols-2 gap-y-8 border-t border-b py-8 text-sm"><Detail label="Email" value={user.email}/><Detail label="Age" value={user.age}/><Detail label="Account verification" value={user.is_verified?"Verified":"Not verified"}/><Detail label="Sign-in method" value={user.is_oauth?"Google OAuth":"Email and password"}/><Detail label="Last profile update" value={displayDate(user.updated_at)}/><Detail label="Last played" value={displayDate(performance.last_played)}/></div>

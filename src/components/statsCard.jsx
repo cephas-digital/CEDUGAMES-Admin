@@ -112,8 +112,9 @@
 // StatCard.jsx
 
 import React from "react";
+import { Loader2 } from "lucide-react";
 
-const statsCard = ({ data }) => {
+const statsCard = ({ data, loading = false }) => {
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
@@ -125,6 +126,7 @@ const statsCard = ({ data }) => {
             icon={item.icon}
             change={item.change}
             gradient={item.gradient}
+            loading={loading}
           />
         ))}
       </div>
@@ -134,7 +136,7 @@ const statsCard = ({ data }) => {
 
 export default statsCard;
 
-function Card({ title, value, icon, change, gradient }) {
+function Card({ title, value, icon, change, gradient, loading }) {
   return (
     <div>
       <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 flex flex-col gap-4 relative overflow-hidden">
@@ -146,12 +148,12 @@ function Card({ title, value, icon, change, gradient }) {
         {/* Icon & Change */}
         <div className="flex justify-between items-start">
           <div className="p-3 rounded-xl bg-gray-50">{icon}</div>
-          <p className={`${String(change).startsWith("-") ? "text-red-600" : "text-green-600"} font-semibold text-sm`}>{change}</p>
+          <p className={`${String(change).startsWith("-") ? "text-red-600" : "text-green-600"} font-semibold text-sm`}>{loading ? <span className="text-gray-400">Fetching...</span> : change}</p>
         </div>
 
         <p className="text-gray-500 text-sm font-medium">{title}</p>
 
-        <h2 className="text-3xl font-bold text-gray-900">{value}</h2>
+        <h2 className="flex min-h-9 items-center text-3xl font-bold text-gray-900">{loading ? <Loader2 aria-label={`Loading ${title}`} className="h-6 w-6 animate-spin text-purple-500" /> : value}</h2>
       </div>
     </div>
   );
