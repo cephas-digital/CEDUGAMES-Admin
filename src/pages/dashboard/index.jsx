@@ -6,6 +6,7 @@ import RecentTransactions from "../../components/recentTransaction";
 import CoinPackages from "../../components/coinPackae";
 import TopPlayers from "../../components/topPlayers";
 import RecentActivities from "../../components/recent-activicties";
+import DashboardAnalytics from "../../components/dashboard-analytics";
 
 const Index = () => {
   const [dashboard,setDashboard]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState("");
@@ -24,6 +25,7 @@ const Index = () => {
     <StatsCards data={stats} loading={loading}/>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><div className="lg:col-span-2"><RecentTransactions data={dashboard?.recentTransactions||[]} loading={loading}/></div><CoinPackages data={dashboard?.popularPackages||[]} loading={loading}/></div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><TopPlayers data={dashboard?.topPlayers||[]} loading={loading}/><div><RecentActivities data={dashboard?.recentActivities||[]} loading={loading}/></div></div>
+    <DashboardAnalytics analytics={dashboard?.analytics} loading={loading}/>
   </div></div>;
 };
 export default Index;
