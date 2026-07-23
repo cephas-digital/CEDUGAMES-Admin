@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { FaCog, FaSignOutAlt, FaBars } from "react-icons/fa";
-import { Link } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import CEDUGAMES from "../../assets/CEDUGAMES.png";
 import {
   FaUserGraduate,
@@ -15,8 +14,10 @@ import { canAccess } from "../../data/adminAuth";
 
 const Sidebar = ({ children, onSelectPage }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const location = useLocation();
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
 
   const links = [
@@ -73,6 +74,12 @@ const Sidebar = ({ children, onSelectPage }) => {
               <Link
                 key={to}
                 to={to}
+                onClick={(event) => {
+                  if (to === "/log-out") {
+                    event.preventDefault();
+                    setConfirmLogout(true);
+                  }
+                }}
                 className={`block relative px-2  py-2 rounded text-sm hover:bg-[#F8F8F8] mb-4 ${
                   location.pathname === to
                     ? "bg-purple-200 text-purple-600  active-link"
@@ -119,6 +126,19 @@ const Sidebar = ({ children, onSelectPage }) => {
         </div>
         <div className="md:ml-52  bg-[#fafbfc]">{children}</div>
       </div>
+      {confirmLogout && (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/50 p-4 backdrop-blur-sm" onMouseDown={() => setConfirmLogout(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="admin-logout-title" className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-red-50 text-2xl text-red-500"><FaSignOutAlt /></div>
+            <h2 id="admin-logout-title" className="mt-5 text-2xl font-bold text-slate-900">Log out of admin?</h2>
+            <p className="mt-2 text-sm text-slate-500">You will need to sign in again to manage CeduGames.</p>
+            <div className="mt-7 grid grid-cols-2 gap-3">
+              <button onClick={() => setConfirmLogout(false)} className="rounded-xl border border-slate-200 px-4 py-3 font-semibold text-slate-700">Stay signed in</button>
+              <button onClick={() => navigate("/log-out")} className="rounded-xl bg-red-500 px-4 py-3 font-semibold text-white">Log out</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
