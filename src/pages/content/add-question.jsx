@@ -52,6 +52,7 @@ export default function AddQuestion() {
     categoryId: searchParams.get("category") || "",
     levelId: searchParams.get("level") || "",
     status: "published",
+    readAloud: false,
   });
   const [options, setOptions] = useState(EMPTY_OPTIONS);
   const [shapes, setShapes] = useState(EMPTY_SHAPES);
@@ -86,7 +87,7 @@ export default function AddQuestion() {
     if (!editId) return;
     axios.get(`/admin/questions/${editId}`).then(({ data }) => {
       const question = data.question;
-      setForm({ questionText: question.text || "", explanation: question.explanation || "", ageGroupId: question.ageGroupId, categoryId: question.categoryId, levelId: question.levelId, status: question.status });
+      setForm({ questionText: question.text || "", explanation: question.explanation || "", ageGroupId: question.ageGroupId, categoryId: question.categoryId, levelId: question.levelId, status: question.status, readAloud: Boolean(question.readAloud) });
       setOptions(question.options.map((option) => option.text || ""));
       setCorrectAnswer(question.options.findIndex((option) => option.isCorrect));
       setShapes({ question: question.shapeType ? { type: question.shapeType, color: question.shapeColor } : null, ...Object.fromEntries(question.options.map((option, index) => [`option${index}`, option.shapeType ? { type: option.shapeType, color: option.shapeColor } : null])) });
@@ -188,6 +189,7 @@ export default function AddQuestion() {
     body.append("categoryId", form.categoryId);
     body.append("levelId", form.levelId);
     body.append("status", form.status);
+    body.append("readAloud", String(form.readAloud));
     body.append("shape", JSON.stringify(shapes.question));
     body.append("options", JSON.stringify(options.map((text, index) => ({ text, isCorrect: index === correctAnswer, mediaType: attachments[`option${index}`]?.type || null, shape: shapes[`option${index}`] }))));
     if (attachments.question?.file) body.append("questionMedia", attachments.question.file, attachments.question.file.name);
@@ -242,6 +244,11 @@ export default function AddQuestion() {
               <ShapePicker value={shapes.question} onChange={(shape) => setShapes((current) => ({ ...current, question: shape }))} />
               {attachments.question && <AttachmentPreview attachment={attachments.question} onRemove={() => setAttachment("question", null)} />}
               <div className="mt-1 flex justify-between text-xs"><span className="text-red-500">{errors.questionText}</span><span className="text-slate-400">Rich text supported</span></div>
+
+              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-4 text-sm text-slate-700">
+                <input type="checkbox" checked={form.readAloud} onChange={(event) => update("readAloud", event.target.checked)} className="mt-0.5 h-4 w-4 accent-purple-600" />
+                <span><span className="block font-bold text-slate-800">Read question and answers aloud</span><span className="mt-1 block text-xs leading-5 text-slate-500">Learners will get a play button for the question and all four answer choices.</span></span>
+              </label>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {options.map((option, index) => (
