@@ -50,16 +50,16 @@ export const SetAuthToken = token => {
 
 // export const useURL = process.env.REACT_APP_BASE_URL;
 export const useURL =
-	process.env.REACT_APP_BASE_URL || "https://cedugames-backend.onrender.com";
+	(process.env.REACT_APP_BASE_URL || "https://cedugames-backend.onrender.com").replace(/\/+$/, "");
 
 export const useURL2 =
-	process.env.REACT_APP_SUPPORT_BASE_URL || "https://cedugames-backend.onrender.com";
+	(process.env.REACT_APP_SUPPORT_BASE_URL || useURL).replace(/\/+$/, "");
 
 export const useURL3 =
-	process.env.REACT_APP_SUPPORT_BASE_URL_TWO || "https://cedugames-backend.onrender.com";
+	(process.env.REACT_APP_SUPPORT_BASE_URL_TWO || useURL).replace(/\/+$/, "");
 
 export const useURL4 =
-	process.env.REACT_APP_SUPPORT_BASE_URL_THREE || "https://cedugames-backend.onrender.com";
+	(process.env.REACT_APP_SUPPORT_BASE_URL_THREE || useURL).replace(/\/+$/, "");
 
 export const SetDefaultHeaders = () => {
 	axios.defaults.baseURL = useURL;
