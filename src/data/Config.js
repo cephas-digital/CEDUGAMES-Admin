@@ -1,7 +1,28 @@
 import axios from "axios";
+import catalogLogo from "../assets/cedugames-logo.png";
 
 let expiryTimer;
 let loggingOut = false;
+let catalogRequests = 0;
+let catalogLoaderTimer;
+
+const isCatalogRequest = config => String(config?.method).toLowerCase() === "get" && String(config?.url || "").includes("/catalog/");
+const showCatalogLoader = config => {
+	if (!isCatalogRequest(config) || typeof document === "undefined") return config;
+	config.__catalogLoading = true; catalogRequests += 1;
+	if (!document.getElementById("admin-catalog-loader")) catalogLoaderTimer = window.setTimeout(() => {
+		if (!catalogRequests || document.getElementById("admin-catalog-loader")) return;
+		const loader = document.createElement("div"); loader.id = "admin-catalog-loader"; loader.setAttribute("role", "status"); loader.setAttribute("aria-live", "polite");
+		loader.innerHTML = `<div class="admin-catalog-loader__panel"><img src="${catalogLogo}" alt="Cedugames"><div class="admin-catalog-loader__dots"><i></i><i></i><i></i></div><h2>Loading learning content…</h2><p>Getting the next page ready for you.</p><div class="admin-catalog-loader__cards"><span></span><span></span><span></span></div></div>`;
+		document.body.appendChild(loader);
+	}, 160);
+	return config;
+};
+const hideCatalogLoader = config => {
+	if (!config?.__catalogLoading || typeof document === "undefined") return;
+	catalogRequests = Math.max(0, catalogRequests - 1);
+	if (!catalogRequests) { window.clearTimeout(catalogLoaderTimer); const loader = document.getElementById("admin-catalog-loader"); if (loader) { loader.classList.add("is-leaving"); window.setTimeout(() => loader.remove(), 180); } }
+};
 
 const startSubmitFeedback = config => {
 	if (typeof document === "undefined" || !["post", "put", "patch"].includes(String(config.method).toLowerCase())) return config;
@@ -54,12 +75,13 @@ const scheduleExpiry = token => {
 	} catch (_) { forceLogout(); }
 };
 
-axios.interceptors.request.use(startSubmitFeedback);
+axios.interceptors.request.use(config => showCatalogLoader(startSubmitFeedback(config)));
 
 axios.interceptors.response.use(
-	response => { stopSubmitFeedback(response.config); return response; },
+	response => { stopSubmitFeedback(response.config); hideCatalogLoader(response.config); return response; },
 	error => {
 		stopSubmitFeedback(error?.config);
+		hideCatalogLoader(error?.config);
 		if (error?.response?.status === 401 && localStorage.getItem("DATA_TOKEN")) forceLogout();
 		return Promise.reject(error);
 	}

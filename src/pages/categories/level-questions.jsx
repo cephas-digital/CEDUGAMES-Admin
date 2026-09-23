@@ -13,6 +13,9 @@ export default function LevelQuestions() {
   const levelId = params.get("level");
   const ageId = params.get("ageGroup");
   const categoryId = params.get("category");
+  const learningLevelId = params.get("learningLevel");
+  const programId = params.get("program");
+  const selectedLevelId = learningLevelId || levelId;
   const [level, setLevel] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,15 +23,15 @@ export default function LevelQuestions() {
   const [generatorOpen, setGeneratorOpen] = useState(false);
 
   useEffect(() => {
-    if (!levelId) { setError("No level was selected."); setLoading(false); return; }
-    axios.get(`/admin/levels/${levelId}/questions`)
+    if (!selectedLevelId) { setError("No level was selected."); setLoading(false); return; }
+    axios.get(learningLevelId ? `/admin/catalog/learning-items/${learningLevelId}/questions` : `/admin/levels/${levelId}/questions`)
       .then(({ data }) => { setLevel(data.level); setQuestions(data.questions || []); })
       .catch((requestError) => setError(requestError.response?.data?.message || "Unable to load questions."))
       .finally(() => setLoading(false));
-  }, [levelId]);
+  }, [levelId, learningLevelId, selectedLevelId]);
 
-  const addUrl = `/content/add-question?ageGroup=${ageId}&category=${categoryId}&level=${levelId}`;
-  const backUrl = `/categories/view-categories?ageGroup=${ageId}&category=${categoryId}`;
+  const addUrl = learningLevelId ? `/content/add-question?learningLevel=${learningLevelId}&program=${programId}` : `/content/add-question?ageGroup=${ageId}&category=${categoryId}&level=${levelId}`;
+  const backUrl = learningLevelId ? `/categories/learn?program=${programId}` : `/categories/view-categories?ageGroup=${ageId}&category=${categoryId}`;
 
   return <div className="mx-auto w-full max-w-7xl px-6 pb-12">
     <PageNavigation items={[{ label: "Levels", to: backUrl }, { label: level?.name || "Questions" }]} title={level ? `Level ${level.level_number}: ${level.name}` : "Level questions"} description={`${questions.length} question${questions.length === 1 ? "" : "s"} in this level`} action={<div className="flex flex-wrap gap-2"><button onClick={() => setGeneratorOpen(true)} disabled={!levelId || !ageId || !categoryId} className="flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3 text-sm font-bold text-purple-700 transition hover:bg-purple-100 disabled:opacity-50"><Sparkles size={18}/>Generate with AI</button><Link to={addUrl} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-purple-700"><Plus size={18}/>Add manually</Link></div>} />

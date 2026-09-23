@@ -202,7 +202,7 @@ export default function AddQuestion() {
     try {
       if (editId) await axios.put(`/admin/questions/${editId}`, body); else await axios.post("/admin/questions", body);
       toast.success(editId ? "Question updated successfully." : form.status === "draft" ? "Question saved as draft." : "Question published successfully.");
-      navigate(isLearningQuestion ? `/categories/learn?program=${learningProgramId}&parent=${learningLevelId}&type=questions` : editId ? `/categories/level-questions?ageGroup=${form.ageGroupId}&category=${form.categoryId}&level=${form.levelId}` : "/content");
+      navigate(isLearningQuestion ? `/categories/level-questions?learningLevel=${learningLevelId}&program=${learningProgramId}` : editId ? `/categories/level-questions?ageGroup=${form.ageGroupId}&category=${form.categoryId}&level=${form.levelId}` : "/content");
     } catch (error) {
       toast.error(error.response?.data?.message || error.response?.data?.errors?.[0]?.message || "Question could not be saved. Please try again.");
     } finally {
