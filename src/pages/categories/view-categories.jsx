@@ -27,7 +27,7 @@ export default function CategoryLevels() {
   const [form, setForm] = useState(blank);
   const [imageFile, setImageFile] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState(() => localStorage.getItem("cedugames-level-view") || "cards");
+  const [view, setView] = useState(() => localStorage.getItem("cedugames-level-view") || "table");
 
   const load = async () => {
     if (!ageId || !categoryId) return;
