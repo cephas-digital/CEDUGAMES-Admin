@@ -34,7 +34,7 @@ export default function Learn() {
 
   const open = (item = null) => {
     setEditing(item); setFile(null);
-    setForm(item ? { title: item.title, tag: item.tag || "", description: item.description || "", imageUrl: item.image_url, sortOrder: item.sort_order, pointsPerQuestion: item.points_per_question || 10, timeLimitSeconds: item.time_limit_seconds || 30, questionsPerPlay: item.questions_per_play || 10 } : empty);
+    setForm(item ? { title: item.title, tag: item.tag || "", description: item.description || "", imageUrl: item.image_url, sortOrder: item.sort_order, pointsPerQuestion: item.points_per_question || 10, timeLimitSeconds: item.time_limit_seconds || 30, questionsPerPlay: item.questions_per_play || 10 } : { ...empty, sortOrder: type === "level" ? items.length + 1 : 0 });
     setDialog(true);
   };
   const save = async (event) => {

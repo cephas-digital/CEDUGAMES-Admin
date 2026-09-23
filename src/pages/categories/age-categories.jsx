@@ -171,7 +171,7 @@ const AgeCategories = () => {
   };
 
   return (
-    <div className="category-page">
+    <div className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6">
       <PageNavigation
         title={pageTitle}
         description="Create and manage game categories for this age group."
@@ -180,23 +180,23 @@ const AgeCategories = () => {
           { label: ageGroup?.name || "Age Group" },
         ]}
         action={
-          <button className="primary-btn" type="button" onClick={openCreateDialog} disabled={!ageGroupId}>
+          <button className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={openCreateDialog} disabled={!ageGroupId}>
             <Plus size={18} /> Add Category
           </button>
         }
       />
 
       {loading ? (
-        <div className="catalog-status-card" role="status" aria-live="polite">
-          <div className="catalog-spinner" />
-          <h3>Loading categories...</h3>
-          <p>Preparing this age group for you.</p>
+        <div className="grid min-h-72 place-items-center rounded-2xl border bg-white p-8 text-center shadow-sm" role="status" aria-live="polite">
+          <div><div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-purple-100 border-t-purple-600" />
+          <h3 className="mt-4 text-lg font-bold text-slate-900">Loading categories...</h3>
+          <p className="mt-1 text-sm text-slate-500">Preparing this age group for you.</p></div>
         </div>
       ) : error ? (
-        <div className="catalog-status-card catalog-status-card--error" role="alert">
-          <h3>Categories could not be displayed</h3>
-          <p>{error}</p>
-          <button className="primary-btn" type="button" onClick={loadPage}>Try again</button>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center" role="alert">
+          <h3 className="text-lg font-bold text-red-800">Categories could not be displayed</h3>
+          <p className="mt-2 text-sm text-red-700">{error}</p>
+          <button className="mt-5 rounded-xl bg-purple-600 px-5 py-3 font-bold text-white" type="button" onClick={loadPage}>Try again</button>
         </div>
       ) : categories.length === 0 ? (
         <CatalogEmptyState
@@ -206,35 +206,37 @@ const AgeCategories = () => {
           onAction={openCreateDialog}
         />
       ) : (
-        <div className="table-responsive">
-          <table className="catalog-table">
-            <thead>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px] table-fixed text-left">
+            <thead className="bg-slate-50 text-sm text-slate-600">
               <tr>
-                <th>Card</th>
-                <th>Actions</th>
+                <th className="w-2/3 px-6 py-4 font-bold">Card</th>
+                <th className="w-1/3 px-6 py-4 text-right font-bold">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-200">
               {categories.map((category) => (
-                <tr key={category.id}>
-                  <td>
-                    <div className="catalog-table-card">
-                      <img src={category.image_url} alt="" />
-                      <div>
-                        <strong>{category.name}</strong>
-                        {category.description ? <p>{category.description}</p> : null}
+                <tr key={category.id} className="transition hover:bg-slate-50/70">
+                  <td className="px-6 py-4 align-middle">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <img className="h-16 w-24 shrink-0 rounded-xl border border-slate-100 object-cover" src={category.image_url} alt="" />
+                      <div className="min-w-0">
+                        <strong className="block truncate text-base text-slate-900">{category.name}</strong>
+                        {category.description ? <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500">{category.description}</p> : <p className="mt-1 text-sm text-slate-400">No description</p>}
                       </div>
                     </div>
                   </td>
-                  <td>
-                    <div className="table-actions">
-                      <button type="button" onClick={() => openEditDialog(category)}>
+                  <td className="px-6 py-4 align-middle">
+                    <div className="flex flex-wrap justify-end gap-3 text-sm font-semibold">
+                      <button className="flex items-center gap-1 text-purple-600 hover:text-purple-800" type="button" onClick={() => openEditDialog(category)}>
                         <Pencil size={17} /> Edit
                       </button>
-                      <button className="danger" type="button" onClick={() => setDeleteTarget(category)}>
+                      <button className="flex items-center gap-1 text-red-500 hover:text-red-700" type="button" onClick={() => setDeleteTarget(category)}>
                         <Trash2 size={17} /> Delete
                       </button>
                       <button
+                        className="flex items-center gap-1 text-slate-700 hover:text-purple-700"
                         type="button"
                         onClick={() => navigate(`/categories/view-categories?ageGroup=${ageGroupId}&category=${category.id}`)}
                       >
@@ -246,6 +248,7 @@ const AgeCategories = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -254,23 +257,27 @@ const AgeCategories = () => {
         title={editingCategory ? "Edit Category" : "Add Category"}
         onClose={closeDialog}
       >
-        <form onSubmit={saveCategory}>
-          <label htmlFor="category-name">Card title *</label>
+        <form onSubmit={saveCategory} className="space-y-5">
+          <label className="block text-sm font-semibold text-slate-700" htmlFor="category-name">Card title *
           <input
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
             id="category-name"
             value={form.name}
             onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
             placeholder="Enter category title"
             required
           />
+          </label>
 
-          <label htmlFor="category-description">Description (optional)</label>
+          <label className="block text-sm font-semibold text-slate-700" htmlFor="category-description">Description <span className="font-normal text-slate-400">(optional)</span>
           <textarea
+            className="mt-2 min-h-28 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
             id="category-description"
             value={form.description}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
             placeholder="Describe this category"
           />
+          </label>
 
           <ImageUploadField
             label="Card image"
@@ -280,7 +287,7 @@ const AgeCategories = () => {
             onChange={(image) => setForm((current) => ({ ...current, image }))}
           />
 
-          <button className="dialog-save-btn" type="submit" disabled={saving}>
+          <button className="w-full rounded-xl bg-purple-600 py-3 font-bold text-white transition hover:bg-purple-700 disabled:cursor-wait disabled:opacity-60" type="submit" disabled={saving}>
             {saving ? "Saving..." : "Save"}
           </button>
         </form>
