@@ -7,6 +7,8 @@ import Index from "./pages/index";
 import Navbar from "./components/navbar/Navbar";
 import Sidebar from "./components/sidebar/Sidebar";
 import { canAccess, getDefaultRoute } from "./data/adminAuth";
+import RouteErrorBoundary from "./components/route-error-boundary";
+import { useEffect } from "react";
 
 const AdminLayout = ({ children }) => (
   <Sidebar>
@@ -20,10 +22,17 @@ const ProtectedPage = () => {
   const location = useLocation();
   const page = location.pathname.split("/")[1] || "dashboard";
 
+  useEffect(() => {
+    document.getElementById("admin-catalog-loader")?.remove();
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname, location.search]);
+
   return isAuth && canAccess(user, page) ? (
-    <AdminLayout>
-      <PageRender key={`${location.pathname}${location.search}`} />
-    </AdminLayout>
+    <RouteErrorBoundary key={`${location.pathname}${location.search}`}>
+      <AdminLayout>
+        <PageRender />
+      </AdminLayout>
+    </RouteErrorBoundary>
   ) : (
     <Navigate to={isAuth ? getDefaultRoute(user) : "/"} replace />
   );

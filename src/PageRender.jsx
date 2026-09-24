@@ -1,6 +1,4 @@
-import { useEffect } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
-import useAuthStore from "./data/Stores/Authstore";
+import { Navigate, useParams } from "react-router-dom";
 
 import Dashboard from "./pages/dashboard";
 import UserManagement from "./pages/user-management";
@@ -75,16 +73,6 @@ const pages = {
 
 export default function PageRender() {
   const { page, id } = useParams();
-  const navigate = useNavigate();
-  const { auth, errors, clearErrors } = useAuthStore();
-
-  useEffect(() => {
-    if (auth?.isAuth && errors?.errorText) {
-      if (page !== "login" && page !== "register") navigate("/");
-      clearErrors();
-    }
-    if (auth?.isAuth && (page === "login" || page === "register")) navigate("/");
-  }, [auth?.isAuth, clearErrors, errors?.errorText, navigate, page]);
 
   const routeKey = id ? `${page}/${id}` : page;
   const Component = pages[routeKey] || (page === "settings" && id ? SettingsSection : null);
