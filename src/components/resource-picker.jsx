@@ -1,29 +1,35 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Check, Image, Loader2, Search, X } from "lucide-react";
 import { toast } from "react-toastify";
 
 export default function ResourcePicker({ onClose, onSelect }) {
+  const requestIdRef = useRef(0);
   const [resources, setResources] = useState([]);
   const [categories, setCategories] = useState([]);
   const [categoryId, setCategoryId] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
 
   useEffect(() => {
     axios.get("/admin/resource-categories").then(({ data }) => setCategories(data.categories || [])).catch(() => toast.error("Unable to load resource categories."));
   }, []);
 
   useEffect(() => {
+    requestIdRef.current += 1;
     const timer = setTimeout(() => {
+      const requestId = ++requestIdRef.current;
       setLoading(true);
-      axios.get("/admin/resources", { params: { categoryId: categoryId || undefined, search: search || undefined, limit: 60 } })
-        .then(({ data }) => setResources(data.resources || []))
-        .catch(() => toast.error("Unable to load resources."))
-        .finally(() => setLoading(false));
+      axios.get("/admin/resources", { params: { categoryId: categoryId || undefined, search: search || undefined, page, limit: 30 } })
+        .then(({ data }) => { if (requestId === requestIdRef.current) { setResources(data.resources || []); setPagination(data.pagination || { page: 1, totalPages: 1, total: 0 }); } })
+        .catch((error) => { if (requestId === requestIdRef.current && error.code !== "ERR_CANCELED") toast.error("Unable to load resources."); })
+        .finally(() => { if (requestId === requestIdRef.current) setLoading(false); });
     }, 250);
     return () => clearTimeout(timer);
-  }, [categoryId, search]);
+  }, [categoryId, search, page]);
+  useEffect(() => setPage(1), [categoryId, search]);
 
   return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onMouseDown={onClose}>
     <div role="dialog" aria-modal="true" aria-labelledby="resource-picker-title" className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
@@ -41,6 +47,7 @@ export default function ResourcePicker({ onClose, onSelect }) {
           <div className="p-2.5"><p className="truncate text-xs font-bold text-slate-800">{resource.name}</p><p className="mt-0.5 truncate text-[11px] text-slate-400">{resource.categoryName || "Uncategorised"}</p></div>
         </button>)}</div> : <div className="grid min-h-64 place-items-center text-center"><div><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-purple-50 text-purple-600"><Image/></span><p className="mt-3 font-bold text-slate-800">No matching images</p><p className="mt-1 text-sm text-slate-500">Upload images from the Resources page first.</p></div></div>}
       </div>
+      {pagination.totalPages > 1 && <div className="flex items-center justify-center gap-3 border-t border-slate-100 p-4"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="rounded-lg border px-4 py-2 text-sm font-bold disabled:opacity-40">Previous</button><span className="text-sm text-slate-500">Page {page} of {pagination.totalPages}</span><button type="button" disabled={page >= pagination.totalPages || loading} onClick={() => setPage((value) => value + 1)} className="rounded-lg border px-4 py-2 text-sm font-bold disabled:opacity-40">Next</button></div>}
     </div>
   </div>;
 }

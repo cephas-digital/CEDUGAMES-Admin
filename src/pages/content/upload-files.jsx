@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { AlertCircle, CheckCircle2, FileUp, Loader2, UploadCloud } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, FileSpreadsheet, FileUp, Loader2, UploadCloud } from "lucide-react";
 import { toast } from "react-toastify";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageNavigation from "../../components/page-navigation";
 import { invalidateCatalogPrefix } from "../../data/catalog-cache";
 
   const EXPECTED_HEADERS = ["Questions", "Option A", "Option B", "Option C", "Option D", "Correct Answer"];
+  const TEMPLATE_ROWS = [
+    ["What is 2 + 3?", "4", "5", "6", "7", "Option B"],
+    ["Which animal says meow?", "Dog", "Cat", "Cow", "Duck", "Option B"],
+  ];
   const fieldClass = "mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100";
 
   export default function UploadFiles() {
@@ -18,6 +22,20 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
     const initialLearningLevel = params.get("learningLevel") || "";
     const [form, setForm] = useState({ placementType: initialLearningLevel ? "learn" : "games", ageGroupId: params.get("ageGroup") || "", categoryId: params.get("category") || "", levelId: params.get("level") || "", programId: params.get("program") || "", sectionId: "", gradeId: "", subjectId: "", topicId: "", learningLevelId: initialLearningLevel, status: "published" });
     const [file, setFile] = useState(null), [preview, setPreview] = useState(null), [errors, setErrors] = useState([]), [busy, setBusy] = useState(false);
+
+    const downloadTemplate = () => {
+      const escapeCell = (value) => `"${String(value).replace(/"/g, '""')}"`;
+      const csv = [EXPECTED_HEADERS, ...TEMPLATE_ROWS].map((row) => row.map(escapeCell).join(",")).join("\r\n");
+      const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "cedugames-question-bulk-upload-template.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("CSV template downloaded.");
+    };
 
     useEffect(() => {
       Promise.all([axios.get("/admin/catalog/age-groups"), axios.get("/admin/catalog/programs")])
@@ -87,9 +105,15 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
         <PageNavigation items={[{ label: "Content", to: "/content" }, { label: "Bulk upload" }]} title="Bulk upload questions" description="Upload the provided CSV template to add several questions at once." />
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="mb-6 flex items-center gap-3"><span className="rounded-xl bg-purple-100 p-3 text-purple-700"><UploadCloud size={22}/></span><div><h2 className="font-bold text-slate-900">Choose CSV template</h2><p className="text-sm text-slate-500">Required columns: {EXPECTED_HEADERS.join(", ")}</p></div></div>
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3"><span className="rounded-xl bg-purple-100 p-3 text-purple-700"><UploadCloud size={22}/></span><div><h2 className="font-bold text-slate-900">Upload completed CSV</h2><p className="text-sm text-slate-500">Required columns: {EXPECTED_HEADERS.join(", ")}</p></div></div>
+              <button type="button" onClick={downloadTemplate} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-bold text-purple-700 transition hover:border-purple-400 hover:bg-purple-100"><Download size={17}/>Download template</button>
+            </div>
+            <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+              <div className="flex items-start gap-3"><FileSpreadsheet className="mt-0.5 shrink-0 text-blue-600" size={20}/><div><p className="text-sm font-bold text-slate-800">Start with the downloadable template</p><ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-5 text-slate-600"><li>Download and open it in Excel, Google Sheets, or another spreadsheet app.</li><li>Replace the two example rows with your questions. Keep all six column headings unchanged.</li><li>In <strong>Correct Answer</strong>, enter only <strong>Option A</strong>, <strong>Option B</strong>, <strong>Option C</strong>, or <strong>Option D</strong>.</li><li>Save or export the file as CSV, then upload it below.</li></ol></div></div>
+            </div>
             <label className="flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-purple-200 bg-purple-50/50 p-6 text-center transition hover:border-purple-400 hover:bg-purple-50">
-              <FileUp className="mb-3 text-purple-600" size={30}/><span className="font-bold text-slate-800">{file ? file.name : "Choose a CSV file"}</span><span className="mt-1 text-sm text-slate-500">Use the attached template format. CSV files only.</span><input type="file" accept=".csv,text/csv" onChange={chooseFile} className="hidden" />
+              <FileUp className="mb-3 text-purple-600" size={30}/><span className="font-bold text-slate-800">{file ? file.name : "Choose your completed CSV file"}</span><span className="mt-1 text-sm text-slate-500">CSV files only. The file will be checked before upload.</span><input type="file" accept=".csv,text/csv" onChange={chooseFile} className="hidden" />
             </label>
             {errors.length > 0 && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"><p className="flex items-center gap-2 font-bold"><AlertCircle size={17}/>Review before uploading</p><ul className="mt-2 list-disc space-y-1 pl-5">{errors.slice(0, 8).map((error) => <li key={error}>{error}</li>)}</ul>{errors.length > 8 && <p className="mt-1">And {errors.length - 8} more errors.</p>}</div>}
             {preview && !errors.length && <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><p className="flex items-center gap-2 font-bold"><CheckCircle2 size={17}/>Ready to upload {preview.questions.length} questions</p><div className="mt-3 max-h-56 overflow-auto rounded-lg bg-white/70"><table className="min-w-[760px] w-full text-left text-xs"><thead><tr className="border-b"><th className="p-2">Question</th><th className="p-2">Option A</th><th className="p-2">Option B</th><th className="p-2">Option C</th><th className="p-2">Option D</th><th className="p-2">Correct answer</th></tr></thead><tbody>{preview.questions.slice(0, 10).map((question) => <tr key={`${question.question}-${question.correctAnswer}`} className="border-b last:border-0"><td className="p-2 font-semibold">{question.question}</td>{question.options.map((option, index) => <td key={index} className={`p-2 ${index === question.correctAnswer ? "font-bold text-emerald-700" : ""}`}>{option}</td>)}<td className="p-2 font-bold">Option {String.fromCharCode(65 + question.correctAnswer)}</td></tr>)}</tbody></table></div>{preview.questions.length > 10 && <p className="mt-2 text-xs">Showing the first 10 rows.</p>}</div>}
