@@ -1,9 +1,10 @@
 import bell from "../../assets/bell.png";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getSessionUser } from "../../data/adminAuth";
 
 const Navbar = ({ title }) => {
+  const location = useLocation();
   const storedUser = getSessionUser();
   const selectedUser = useSelector((state) => state.auth.user);
   const user = selectedUser?.user || selectedUser?.data?.user || selectedUser || storedUser;
@@ -12,9 +13,17 @@ const Navbar = ({ title }) => {
   const role = String(user?.role || "Administrator").replaceAll("_", " ");
   const roleLabel = role.replace(/\b\w/g, (letter) => letter.toUpperCase());
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "A";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const isDashboard = location.pathname === "/dashboard";
   return (
-    <div className="flex min-w-0 items-center mb-4 justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 bg-white shadow-sm">
-      <h1 className="text-xl font-semibold">{title}</h1>
+    <header className="mb-4 flex min-w-0 items-center justify-between gap-3 bg-white px-4 py-3 shadow-sm sm:px-6 sm:py-4">
+      <div className="min-w-0">
+        {isDashboard ? <>
+          <p className="text-xs font-semibold uppercase tracking-wider text-purple-600 sm:text-sm">{greeting}</p>
+          <h1 className="truncate text-base font-black text-slate-900 sm:text-xl">Welcome, {name}</h1>
+        </> : title ? <h1 className="truncate text-lg font-bold text-slate-900 sm:text-xl">{title}</h1> : <p className="text-sm font-bold text-slate-500">CEDU Admin</p>}
+      </div>
 
       <div className="flex min-w-0 items-center space-x-2 sm:space-x-4">
         <Link to="/notifications" className="relative block w-8 h-8" aria-label="View notifications and activities">
@@ -36,7 +45,7 @@ const Navbar = ({ title }) => {
           </div>
         </Link>
       </div>
-    </div>
+    </header>
   );
 };
 
