@@ -13,10 +13,17 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
     const navigate = useNavigate();
     const [params] = useSearchParams();
     const [ageGroups, setAgeGroups] = useState([]), [categories, setCategories] = useState([]), [levels, setLevels] = useState([]);
-    const [form, setForm] = useState({ ageGroupId: params.get("ageGroup") || "", categoryId: params.get("category") || "", levelId: params.get("level") || "", status: "published" });
+    const [programs, setPrograms] = useState([]);
+    const [learnOptions, setLearnOptions] = useState({ section: [], grade: [], subject: [], topic: [], level: [] });
+    const initialLearningLevel = params.get("learningLevel") || "";
+    const [form, setForm] = useState({ placementType: initialLearningLevel ? "learn" : "games", ageGroupId: params.get("ageGroup") || "", categoryId: params.get("category") || "", levelId: params.get("level") || "", programId: params.get("program") || "", sectionId: "", gradeId: "", subjectId: "", topicId: "", learningLevelId: initialLearningLevel, status: "published" });
     const [file, setFile] = useState(null), [preview, setPreview] = useState(null), [errors, setErrors] = useState([]), [busy, setBusy] = useState(false);
 
-    useEffect(() => { axios.get("/admin/catalog/age-groups").then(({ data }) => setAgeGroups(data.ageGroups || [])).catch(() => toast.error("Unable to load age groups.")); }, []);
+    useEffect(() => {
+      Promise.all([axios.get("/admin/catalog/age-groups"), axios.get("/admin/catalog/programs")])
+        .then(([ages, programResponse]) => { setAgeGroups(ages.data.ageGroups || []); setPrograms((programResponse.data.programs || []).filter((item) => item.program_type === "learn")); })
+        .catch(() => toast.error("Unable to load learning placements."));
+    }, []);
     useEffect(() => {
       setCategories([]); setLevels([]);
       if (!form.ageGroupId) return;
@@ -27,6 +34,19 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
       if (!form.categoryId) return;
       axios.get(`/admin/catalog/categories/${form.categoryId}/levels`).then(({ data }) => setLevels(data.levels || [])).catch(() => toast.error("Unable to load levels."));
     }, [form.categoryId]);
+
+    const loadLearningItems = (key, programId, parentId) => {
+      setLearnOptions((current) => ({ ...current, [key]: [] }));
+      if (!programId || (key !== "section" && !parentId)) return;
+      axios.get("/admin/catalog/learning-items", { params: { programId, parentId: parentId || undefined } })
+        .then(({ data }) => setLearnOptions((current) => ({ ...current, [key]: data.items || [] })))
+        .catch(() => toast.error(`Unable to load ${key}s.`));
+    };
+    useEffect(() => { loadLearningItems("section", form.programId); }, [form.programId]);
+    useEffect(() => { loadLearningItems("grade", form.programId, form.sectionId); }, [form.programId, form.sectionId]);
+    useEffect(() => { loadLearningItems("subject", form.programId, form.gradeId); }, [form.programId, form.gradeId]);
+    useEffect(() => { loadLearningItems("topic", form.programId, form.subjectId); }, [form.programId, form.subjectId]);
+    useEffect(() => { if (!initialLearningLevel) loadLearningItems("level", form.programId, form.topicId); }, [form.programId, form.topicId, initialLearningLevel]);
 
     const chooseFile = async (event) => {
       const selected = event.target.files?.[0];
@@ -40,18 +60,22 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
       event.target.value = "";
     };
 
-    const canUpload = Boolean(file && preview?.questions.length && form.ageGroupId && form.categoryId && form.levelId && !errors.length);
-    const selectedLevel = useMemo(() => levels.find((item) => item.id === form.levelId), [levels, form.levelId]);
+    const validPlacement = form.placementType === "learn" ? form.learningLevelId : form.ageGroupId && form.categoryId && form.levelId;
+    const canUpload = Boolean(file && preview?.questions.length && validPlacement && !errors.length);
+    const selectedLevel = useMemo(() => form.placementType === "learn" ? learnOptions.level.find((item) => item.id === form.learningLevelId) : levels.find((item) => item.id === form.levelId), [form.placementType, form.learningLevelId, form.levelId, learnOptions.level, levels]);
     const submit = async (event) => {
       event.preventDefault();
       if (!canUpload) return setErrors(["Choose a valid CSV, complete the placement fields, and resolve any row errors."]);
       setBusy(true);
       const body = new FormData();
-      body.append("file", file); body.append("ageGroupId", form.ageGroupId); body.append("categoryId", form.categoryId); body.append("levelId", form.levelId); body.append("status", form.status);
+      body.append("file", file); body.append("status", form.status);
+      if (form.placementType === "learn") body.append("learningLevelId", form.learningLevelId);
+      else { body.append("ageGroupId", form.ageGroupId); body.append("categoryId", form.categoryId); body.append("levelId", form.levelId); }
       try {
         const { data } = await axios.post("/admin/questions/bulk", body);
-        invalidateCatalogPrefix("questions:"); invalidateCatalogPrefix("games:levels:");
-        toast.success(data.message); navigate(`/categories/level-questions?ageGroup=${form.ageGroupId}&category=${form.categoryId}&level=${form.levelId}`);
+        invalidateCatalogPrefix("questions:"); invalidateCatalogPrefix("games:levels:"); invalidateCatalogPrefix("learn:");
+        toast.success(data.message);
+        navigate(form.placementType === "learn" ? `/categories/level-questions?learningLevel=${form.learningLevelId}&program=${form.programId}` : `/categories/level-questions?ageGroup=${form.ageGroupId}&category=${form.categoryId}&level=${form.levelId}`);
       } catch (error) {
         const messages = error.response?.data?.errors || [error.response?.data?.message || "Questions could not be uploaded."];
         setErrors(messages); toast.error(messages[0]);
@@ -71,13 +95,32 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
             {preview && !errors.length && <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><p className="flex items-center gap-2 font-bold"><CheckCircle2 size={17}/>Ready to upload {preview.questions.length} questions</p><div className="mt-3 max-h-56 overflow-auto rounded-lg bg-white/70"><table className="min-w-[760px] w-full text-left text-xs"><thead><tr className="border-b"><th className="p-2">Question</th><th className="p-2">Option A</th><th className="p-2">Option B</th><th className="p-2">Option C</th><th className="p-2">Option D</th><th className="p-2">Correct answer</th></tr></thead><tbody>{preview.questions.slice(0, 10).map((question) => <tr key={`${question.question}-${question.correctAnswer}`} className="border-b last:border-0"><td className="p-2 font-semibold">{question.question}</td>{question.options.map((option, index) => <td key={index} className={`p-2 ${index === question.correctAnswer ? "font-bold text-emerald-700" : ""}`}>{option}</td>)}<td className="p-2 font-bold">Option {String.fromCharCode(65 + question.correctAnswer)}</td></tr>)}</tbody></table></div>{preview.questions.length > 10 && <p className="mt-2 text-xs">Showing the first 10 rows.</p>}</div>}
           </section>
           <aside className="h-fit space-y-6 lg:sticky lg:top-6">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="font-bold text-slate-900">Learning placement</h2><p className="mt-1 text-sm text-slate-500">All uploaded questions will use this placement.</p><Select label="Age group" value={form.ageGroupId} onChange={(value) => setForm({ ...form, ageGroupId: value, categoryId: "", levelId: "" })} options={ageGroups.map((item) => ({ value: item.id, label: `${item.name} (${item.min_age}-${item.max_age})` }))} placeholder="Select age group"/><Select label="Category" value={form.categoryId} disabled={!form.ageGroupId} onChange={(value) => setForm({ ...form, categoryId: value, levelId: "" })} options={categories.map((item) => ({ value: item.id, label: item.name }))} placeholder="Select category"/><Select label="Level" value={form.levelId} disabled={!form.categoryId} onChange={(value) => setForm({ ...form, levelId: value })} options={levels.map((item) => ({ value: item.id, label: `Level ${item.level_number}: ${item.name}` }))} placeholder="Select level"/><Select label="Publish status" value={form.status} onChange={(value) => setForm({ ...form, status: value })} options={[{ value: "published", label: "Publish immediately" }, { value: "draft", label: "Save as drafts" }]}/>{selectedLevel && <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">{selectedLevel.points_per_question} points per question · {selectedLevel.time_limit_seconds} seconds each.</p>}</section>
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="font-bold text-slate-900">Learning placement</h2><p className="mt-1 text-sm text-slate-500">All uploaded questions will use this placement.</p>
+              <Select label="Learning path" value={form.placementType} onChange={(value) => setForm({ ...form, placementType: value })} options={[{ value: "games", label: "CEDUGAMES" }, { value: "learn", label: "CEDU-LEARN" }]}/>
+              {form.placementType === "games" ? <>
+                <Select label="Age group" value={form.ageGroupId} onChange={(value) => setForm({ ...form, ageGroupId: value, categoryId: "", levelId: "" })} options={ageGroups.map((item) => ({ value: item.id, label: `${item.name} (${item.min_age}-${item.max_age})` }))} placeholder="Select age group"/>
+                <Select label="Category" value={form.categoryId} disabled={!form.ageGroupId} onChange={(value) => setForm({ ...form, categoryId: value, levelId: "" })} options={categories.map((item) => ({ value: item.id, label: item.name }))} placeholder="Select category"/>
+                <Select label="Level" value={form.levelId} disabled={!form.categoryId} onChange={(value) => setForm({ ...form, levelId: value })} options={levels.map((item) => ({ value: item.id, label: `Level ${item.level_number}: ${item.name}` }))} placeholder="Select level"/>
+              </> : <>
+                <Select label="Program" value={form.programId} onChange={(value) => setForm({ ...form, programId: value, sectionId: "", gradeId: "", subjectId: "", topicId: "", learningLevelId: "" })} options={programs.map((item) => ({ value: item.id, label: item.title }))} placeholder="Select CEDU-LEARN program"/>
+                <Select label="Grade section" value={form.sectionId} disabled={!form.programId} onChange={(value) => setForm({ ...form, sectionId: value, gradeId: "", subjectId: "", topicId: "", learningLevelId: "" })} options={learnOptions.section.map(cardOption)} />
+                <Select label="Grade" value={form.gradeId} disabled={!form.sectionId} onChange={(value) => setForm({ ...form, gradeId: value, subjectId: "", topicId: "", learningLevelId: "" })} options={learnOptions.grade.map(cardOption)} />
+                <Select label="Subject" value={form.subjectId} disabled={!form.gradeId} onChange={(value) => setForm({ ...form, subjectId: value, topicId: "", learningLevelId: "" })} options={learnOptions.subject.map(cardOption)} />
+                <Select label="Topic" value={form.topicId} disabled={!form.subjectId} onChange={(value) => setForm({ ...form, topicId: value, learningLevelId: "" })} options={learnOptions.topic.map(cardOption)} />
+                <Select label="Level" value={form.learningLevelId} disabled={!form.topicId && !initialLearningLevel} onChange={(value) => setForm({ ...form, learningLevelId: value })} options={initialLearningLevel && !learnOptions.level.length ? [{ value: initialLearningLevel, label: "Selected CEDU-LEARN level" }] : learnOptions.level.map(cardOption)} />
+              </>}
+              <Select label="Publish status" value={form.status} onChange={(value) => setForm({ ...form, status: value })} options={[{ value: "published", label: "Publish immediately" }, { value: "draft", label: "Save as drafts" }]}/>
+              {selectedLevel && <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">{selectedLevel.points_per_question} points per question · {selectedLevel.time_limit_seconds} seconds each.</p>}
+            </section>
             <section className="rounded-2xl bg-slate-900 p-6 text-white"><h3 className="font-bold">Ready to upload?</h3><p className="mt-1 text-sm leading-6 text-slate-300">The upload is transactional: if any row fails validation, no questions are added.</p><button disabled={busy || !canUpload} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-5 py-3 font-bold disabled:cursor-not-allowed disabled:opacity-50">{busy ? <Loader2 className="animate-spin" size={18}/> : <UploadCloud size={18}/>} {busy ? "Uploading questions..." : "Upload questions"}</button></section>
           </aside>
         </div>
       </div>
     </form>;
   }
+
+  const cardOption = (item) => ({ value: item.id, label: item.item_type === "level" ? `Level ${item.sort_order}: ${item.title}` : item.title });
 
   function Select({ label, value, onChange, options, placeholder, disabled }) { return <label className="mt-5 block text-sm font-semibold text-slate-700">{label}<select className={fieldClass} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}><option value="">{placeholder || `Select ${label.toLowerCase()}`}</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>; }
 
