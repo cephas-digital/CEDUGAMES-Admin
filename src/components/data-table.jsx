@@ -40,7 +40,7 @@ export default function DataTable({
       {title && <h1 className="text-2xl font-bold mb-6">{title}</h1>}
 
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="w-full">
+        <table className="w-full min-w-[900px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               {columns.map((column) => (

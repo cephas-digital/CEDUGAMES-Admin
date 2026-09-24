@@ -171,7 +171,7 @@ const AgeCategories = () => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6">
+    <div className="mx-auto w-full max-w-7xl px-3 pb-10 sm:px-5 lg:px-6">
       <PageNavigation
         title={pageTitle}
         description="Create and manage game categories for this age group."

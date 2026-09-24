@@ -26,7 +26,7 @@ export default function NotificationsPage() {
   useEffect(() => { loadActivities(1); }, []);
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-6 text-gray-900">
+    <div className="w-full max-w-7xl p-3 text-gray-900 sm:p-5 lg:p-6">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-[#1F2937]"><Activity className="text-purple-600" /> Activity & Notifications</h1>
