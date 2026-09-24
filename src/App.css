@@ -26,6 +26,24 @@ button, input, select, textarea { font: inherit; }
 .brand-loader-dots span:nth-child(3) { background: #0177d2; animation-delay: .3s; }
 @keyframes brand-loader-float { 50% { transform: translateY(-5px) scale(1.02); } }
 @keyframes brand-loader-dot { to { transform: translateY(-6px); opacity: .55; } }
+
+/* Table screens should use the available Admin workspace instead of inheriting
+   narrow content/form widths. Tables retain their own min-width and scroll
+   horizontally on screens that cannot display every column legibly. */
+.nav main :where([class~="max-w-6xl"], [class~="max-w-7xl"], [class~="max-w-screen-2xl"], [class~="max-w-[1600px]"]):has(table) {
+  width: 100%;
+  max-width: none;
+}
+
+.nav main .overflow-x-auto > table:not([class*="min-w-"]) {
+  min-width: 760px;
+}
+
+/* Keep every Admin table aligned with the same small left/right breathing room. */
+.nav main :where(.overflow-x-auto, .overflow-hidden):has(> table) {
+  width: calc(100% - 1rem);
+  margin-inline: auto;
+}
 .manrope {
   font-family: Manrope;
 }

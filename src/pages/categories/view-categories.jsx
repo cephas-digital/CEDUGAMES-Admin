@@ -8,8 +8,9 @@ import ConfirmDialog from "../../components/confirm-dialog";
 import FormDialog from "../../components/form-dialog";
 import ImageUploadField from "../../components/image-upload-field";
 import { removeCatalogImage, uploadCatalogImage } from "../../data/media";
+import { invalidateCatalogPrefix, loadCatalogData, readCatalogCache } from "../../data/catalog-cache";
 
-const blank = { name: "", levelNumber: "", description: "", imageUrl: "", pointsPerQuestion: 10, timeLimitSeconds: 30 };
+const blank = { name: "", levelNumber: "", description: "", imageUrl: "", pointsPerQuestion: 10, timeLimitSeconds: 30, questionsPerPlay: 10 };
 const field = "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100";
 
 export default function CategoryLevels() {
@@ -17,26 +18,31 @@ export default function CategoryLevels() {
   const [params] = useSearchParams();
   const ageId = params.get("ageGroup");
   const categoryId = params.get("category");
-  const [age, setAge] = useState(null);
-  const [category, setCategory] = useState(null);
-  const [levels, setLevels] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `games:levels:${ageId || "none"}:${categoryId || "none"}`;
+  const cached = readCatalogCache(cacheKey);
+  const [age, setAge] = useState(cached?.age || null);
+  const [category, setCategory] = useState(cached?.category || null);
+  const [levels, setLevels] = useState(cached?.levels || []);
+  const [loading, setLoading] = useState(!cached);
   const [dialog, setDialog] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [form, setForm] = useState(blank);
   const [imageFile, setImageFile] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState(() => localStorage.getItem("cedugames-level-view") || "cards");
+  const [view, setView] = useState(() => localStorage.getItem("cedugames-level-view") || "table");
 
-  const load = async () => {
+  const load = async (force = false) => {
     if (!ageId || !categoryId) return;
+    const existing = readCatalogCache(cacheKey);
+    if (!force && existing) { setAge(existing.age); setCategory(existing.category); setLevels(existing.levels || []); setLoading(false); return; }
     setLoading(true);
     try {
-      const [ageResponse, categoryResponse, levelResponse] = await Promise.all([axios.get("/admin/catalog/age-groups"), axios.get(`/admin/catalog/age-groups/${ageId}/categories`), axios.get(`/admin/catalog/categories/${categoryId}/levels`)]);
-      setAge(ageResponse.data.ageGroups.find((item) => item.id === ageId));
-      setCategory(categoryResponse.data.categories.find((item) => item.id === categoryId));
-      setLevels(levelResponse.data.levels || []);
+      const data = await loadCatalogData(cacheKey, async () => {
+        const [ageResponse, categoryResponse, levelResponse] = await Promise.all([axios.get("/admin/catalog/age-groups"), axios.get(`/admin/catalog/age-groups/${ageId}/categories`), axios.get(`/admin/catalog/categories/${categoryId}/levels`)]);
+        return { age: ageResponse.data.ageGroups.find((item) => item.id === ageId), category: categoryResponse.data.categories.find((item) => item.id === categoryId), levels: levelResponse.data.levels || [] };
+      }, { force });
+      setAge(data.age); setCategory(data.category); setLevels(data.levels);
     } catch { toast.error("Unable to load category levels"); }
     finally { setLoading(false); }
   };
@@ -45,20 +51,20 @@ export default function CategoryLevels() {
 
   const open = (level = null) => {
     setEditing(level);
-    setForm(level ? { name: level.name, levelNumber: level.level_number, description: level.description || "", imageUrl: level.image_url || "", pointsPerQuestion: level.points_per_question ?? 10, timeLimitSeconds: level.time_limit_seconds ?? 30 } : { ...blank, levelNumber: levels.length + 1 });
+    setForm(level ? { name: level.name, levelNumber: level.level_number, description: level.description || "", imageUrl: level.image_url || "", pointsPerQuestion: level.points_per_question ?? 10, timeLimitSeconds: level.time_limit_seconds ?? 30, questionsPerPlay: level.questions_per_play ?? 10 } : { ...blank, levelNumber: levels.length + 1 });
     setImageFile(null);
     setDialog(true);
   };
   const save = async (event) => {
     event.preventDefault(); setBusy(true);
     let uploaded = "";
-    try { uploaded = imageFile ? await uploadCatalogImage(imageFile) : ""; const payload = { ...form, imageUrl: uploaded || form.imageUrl, categoryId, levelNumber: Number(form.levelNumber), pointsPerQuestion: Number(form.pointsPerQuestion), timeLimitSeconds: Number(form.timeLimitSeconds) }; editing ? await axios.put(`/admin/catalog/levels/${editing.id}`, payload) : await axios.post("/admin/catalog/levels", payload); if (uploaded && form.imageUrl) await removeCatalogImage(form.imageUrl).catch(() => {}); toast.success(`Level ${editing ? "updated" : "created"}`); setDialog(false); load(); }
+    try { uploaded = imageFile ? await uploadCatalogImage(imageFile) : ""; const payload = { ...form, imageUrl: uploaded || form.imageUrl, categoryId, levelNumber: Number(form.levelNumber), pointsPerQuestion: Number(form.pointsPerQuestion), timeLimitSeconds: Number(form.timeLimitSeconds), questionsPerPlay: Number(form.questionsPerPlay) }; editing ? await axios.put(`/admin/catalog/levels/${editing.id}`, payload) : await axios.post("/admin/catalog/levels", payload); if (uploaded && form.imageUrl) await removeCatalogImage(form.imageUrl).catch(() => {}); toast.success(`Level ${editing ? "updated" : "created"}`); setDialog(false); invalidateCatalogPrefix("games:levels:"); load(true); }
     catch (error) { if (uploaded) await removeCatalogImage(uploaded).catch(() => {}); toast.error(error.response?.data?.message || error.response?.data?.errors?.[0]?.message || "Unable to save level"); }
     finally { setBusy(false); }
   };
   const remove = async () => {
     setBusy(true);
-    try { await axios.delete(`/admin/catalog/levels/${deleting.id}`); toast.success("Level deleted"); setDeleting(null); load(); }
+    try { await axios.delete(`/admin/catalog/levels/${deleting.id}`); toast.success("Level deleted"); setDeleting(null); invalidateCatalogPrefix("games:levels:"); invalidateCatalogPrefix("questions:games:"); load(true); }
     catch (error) { toast.error(error.response?.data?.message || "Unable to delete level"); }
     finally { setBusy(false); }
   };
@@ -66,11 +72,11 @@ export default function CategoryLevels() {
   const preview = (level) => navigate(`/categories/level-questions?ageGroup=${ageId}&category=${categoryId}&level=${level.id}`);
   const changeView = (nextView) => { setView(nextView); localStorage.setItem("cedugames-level-view", nextView); };
 
-  return <div className="mx-auto w-full max-w-[1600px] px-4 pb-10 sm:px-6">
+  return <div className="mx-auto w-full max-w-[1600px] px-3 pb-10 sm:px-5 lg:px-6">
     <PageNavigation items={[{ label: "Age Groups", to: "/categories" }, { label: age?.name || "Categories", to: `/categories/age-categories?ageGroup=${ageId}` }, { label: category?.name || "Levels" }]} title={category?.name || "Category"} description={category?.description || "Manage the levels available in this category."} action={<button onClick={() => open()} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-purple-700"><Plus size={18}/>Add Level</button>} />
     {!loading && levels.length > 0 && <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-semibold text-slate-500">{levels.length} level{levels.length === 1 ? "" : "s"} · {levels.reduce((total, level) => total + Number(level.question_count || 0), 0)} questions</p><div className="flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm"><ViewButton active={view === "cards"} icon={LayoutGrid} label="Cards" onClick={() => changeView("cards")}/><ViewButton active={view === "table"} icon={List} label="Table" onClick={() => changeView("table")}/></div></div>}
     {loading ? <div className="rounded-2xl bg-white p-16 text-center text-slate-400">Loading levels...</div> : levels.length ? view === "cards" ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">{levels.map((level) => <LevelCard key={level.id} level={level} onAdd={() => addQuestion(level)} onPreview={() => preview(level)} onEdit={() => open(level)} onDelete={() => setDeleting(level)} />)}</div> : <LevelTable levels={levels} onAdd={addQuestion} onPreview={preview} onEdit={open} onDelete={setDeleting}/> : <div className="rounded-2xl border-2 border-dashed bg-white p-16 text-center"><Layers3 className="mx-auto text-purple-400" size={36}/><h2 className="mt-4 text-lg font-bold">No levels created</h2><p className="mt-2 text-sm text-slate-500">Add the first level to this category.</p><button onClick={() => open()} className="mt-5 rounded-xl bg-purple-600 px-5 py-3 font-semibold text-white">Add Level</button></div>}
-    <FormDialog open={dialog} title={editing ? "Edit level" : "Create level"} onClose={() => setDialog(false)}><form onSubmit={save} className="grid gap-5 sm:grid-cols-2"><Field label="Level number"><input required min="1" type="number" className={`${field} mt-2`} value={form.levelNumber} onChange={(event) => setForm({ ...form, levelNumber: event.target.value })}/></Field><Field label="Level name"><input required className={`${field} mt-2`} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Number Quest"/></Field><Field label="Points per question" help="Awarded for each correct answer."><input required min="1" max="1000" type="number" className={`${field} mt-2`} value={form.pointsPerQuestion} onChange={(event) => setForm({ ...form, pointsPerQuestion: event.target.value })}/></Field><Field label="Time limit per question (seconds)" help="How long a learner has to answer."><input required min="5" max="600" type="number" className={`${field} mt-2`} value={form.timeLimitSeconds} onChange={(event) => setForm({ ...form, timeLimitSeconds: event.target.value })}/></Field><label className="text-sm font-semibold sm:col-span-2">Description<textarea rows="4" className={`${field} mt-2 resize-none`} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })}/></label><div className="sm:col-span-2"><ImageUploadField file={imageFile} currentUrl={form.imageUrl} onChange={setImageFile}/></div><div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={() => setDialog(false)} className="rounded-xl border px-5 py-3 font-semibold">Cancel</button><button disabled={busy} className="rounded-xl bg-purple-600 px-6 py-3 font-semibold text-white">{busy ? "Uploading and saving..." : "Save level"}</button></div></form></FormDialog>
+    <FormDialog open={dialog} title={editing ? "Edit level" : "Create level"} onClose={() => setDialog(false)}><form onSubmit={save} className="grid gap-5 sm:grid-cols-2"><Field label="Level number"><input required min="1" type="number" className={`${field} mt-2`} value={form.levelNumber} onChange={(event) => setForm({ ...form, levelNumber: event.target.value })}/></Field><Field label="Level name"><input required className={`${field} mt-2`} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Number Quest"/></Field><Field label="Points per question" help="Awarded for each correct answer."><input required min="1" max="1000" type="number" className={`${field} mt-2`} value={form.pointsPerQuestion} onChange={(event) => setForm({ ...form, pointsPerQuestion: event.target.value })}/></Field><Field label="Time limit per question (seconds)" help="How long a learner has to answer."><input required min="5" max="600" type="number" className={`${field} mt-2`} value={form.timeLimitSeconds} onChange={(event) => setForm({ ...form, timeLimitSeconds: event.target.value })}/></Field><Field label="Questions per play" help="A random selection of this many published questions is shown each time."><input required min="1" max="200" type="number" className={`${field} mt-2`} value={form.questionsPerPlay} onChange={(event) => setForm({ ...form, questionsPerPlay: event.target.value })}/></Field><label className="text-sm font-semibold sm:col-span-2">Description<textarea rows="4" className={`${field} mt-2 resize-none`} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })}/></label><div className="sm:col-span-2"><ImageUploadField file={imageFile} currentUrl={form.imageUrl} onChange={setImageFile}/></div><div className="flex justify-end gap-3 sm:col-span-2"><button type="button" onClick={() => setDialog(false)} className="rounded-xl border px-5 py-3 font-semibold">Cancel</button><button disabled={busy} className="rounded-xl bg-purple-600 px-6 py-3 font-semibold text-white">{busy ? "Uploading and saving..." : "Save level"}</button></div></form></FormDialog>
     <ConfirmDialog open={Boolean(deleting)} loading={busy} onCancel={() => setDeleting(null)} onConfirm={remove} title="Delete level?" message={`Delete ${deleting?.name || "this level"}? This action cannot be undone.`}/>
   </div>;
 }

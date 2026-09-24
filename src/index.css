@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@keyframes request-button-spin { to { transform: rotate(360deg); } }
+.request-button-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-right: .5rem;
+  flex: 0 0 auto;
+  vertical-align: -.15rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: request-button-spin .7s linear infinite;
+}
+button[aria-busy="true"] { cursor: wait; }

@@ -11,6 +11,7 @@ import {
   ChevronDown,
   FileText,
   Image,
+  Images,
   Italic,
   List,
   ListOrdered,
@@ -26,6 +27,8 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageNavigation from "../../components/page-navigation";
 import { useURL } from "../../data/Config";
+import { invalidateCatalogPrefix } from "../../data/catalog-cache";
+import ResourcePicker from "../../components/resource-picker";
 
 const EMPTY_OPTIONS = ["", "", "", ""];
 const EMPTY_SHAPES = { question: null, option0: null, option1: null, option2: null, option3: null };
@@ -44,6 +47,9 @@ export default function AddQuestion() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("question");
+  const learningLevelId = searchParams.get("learningLevel") || "";
+  const learningProgramId = searchParams.get("program") || "";
+  const isLearningQuestion = Boolean(learningLevelId);
   const aiRequested = searchParams.get("ai") === "true";
   const [form, setForm] = useState({
     questionText: "",
@@ -87,7 +93,7 @@ export default function AddQuestion() {
     if (!editId) return;
     axios.get(`/admin/questions/${editId}`).then(({ data }) => {
       const question = data.question;
-      setForm({ questionText: question.text || "", explanation: question.explanation || "", ageGroupId: question.ageGroupId, categoryId: question.categoryId, levelId: question.levelId, status: question.status, readAloud: Boolean(question.readAloud) });
+      setForm({ questionText: question.text || "", explanation: question.explanation || "", ageGroupId: question.ageGroupId || "", categoryId: question.categoryId || "", levelId: question.levelId || "", status: question.status, readAloud: Boolean(question.readAloud) });
       setOptions(question.options.map((option) => option.text || ""));
       setCorrectAnswer(question.options.findIndex((option) => option.isCorrect));
       setShapes({ question: question.shapeType ? { type: question.shapeType, color: question.shapeColor } : null, ...Object.fromEntries(question.options.map((option, index) => [`option${index}`, option.shapeType ? { type: option.shapeType, color: option.shapeColor } : null])) });
@@ -127,9 +133,10 @@ export default function AddQuestion() {
   }, []);
 
   const completeness = useMemo(() => {
-    const checks = [plainText(form.questionText) || attachments.question || shapes.question, options.every((option, index) => plainText(option) || attachments[`option${index}`] || shapes[`option${index}`]), correctAnswer !== null, form.ageGroupId, form.categoryId, form.levelId];
+    const placementReady = isLearningQuestion ? learningLevelId : form.ageGroupId && form.categoryId && form.levelId;
+    const checks = [plainText(form.questionText) || attachments.question || shapes.question, options.every((option, index) => plainText(option) || attachments[`option${index}`] || shapes[`option${index}`]), correctAnswer !== null, placementReady];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  }, [form, options, correctAnswer, attachments, shapes]);
+  }, [form, options, correctAnswer, attachments, shapes, isLearningQuestion, learningLevelId]);
 
   const validate = () => {
     const next = {};
@@ -138,9 +145,9 @@ export default function AddQuestion() {
     const textOptions = options.map((option) => plainText(option).toLowerCase()).filter(Boolean);
     if (new Set(textOptions).size !== textOptions.length) next.options = "Text answer options must be unique.";
     if (correctAnswer === null) next.correctAnswer = "Select the correct answer.";
-    if (!form.ageGroupId) next.ageGroupId = "Select an age group.";
-    if (!form.categoryId) next.categoryId = "Select a category.";
-    if (!form.levelId) next.levelId = "Select a level.";
+    if (!isLearningQuestion && !form.ageGroupId) next.ageGroupId = "Select an age group.";
+    if (!isLearningQuestion && !form.categoryId) next.categoryId = "Select a category.";
+    if (!isLearningQuestion && !form.levelId) next.levelId = "Select a level.";
     setErrors(next);
     if (Object.keys(next).length) window.scrollTo({ top: 0, behavior: "smooth" });
     return !Object.keys(next).length;
@@ -152,6 +159,15 @@ export default function AddQuestion() {
       return { ...current, [target]: file ? { file, type, preview: URL.createObjectURL(file) } : null };
     });
     setRemovedMedia((current) => file ? current.filter((item) => item !== target) : [...new Set([...current, target])]);
+    setErrors((current) => ({ ...current, [target === "question" ? "questionText" : "options"]: "" }));
+  };
+
+  const setResourceAttachment = (target, resource) => {
+    setAttachments((current) => {
+      if (current[target]?.file) URL.revokeObjectURL(current[target].preview);
+      return { ...current, [target]: { type: "image", preview: resource.url, url: resource.url, name: resource.name, resourceId: resource.id } };
+    });
+    setRemovedMedia((current) => current.filter((item) => item !== target));
     setErrors((current) => ({ ...current, [target === "question" ? "questionText" : "options"]: "" }));
   };
 
@@ -185,21 +201,24 @@ export default function AddQuestion() {
     const body = new FormData();
     body.append("questionText", form.questionText);
     body.append("explanation", form.explanation.trim());
-    body.append("ageGroupId", form.ageGroupId);
-    body.append("categoryId", form.categoryId);
-    body.append("levelId", form.levelId);
+    if (isLearningQuestion) body.append("learningLevelId", learningLevelId);
+    else { body.append("ageGroupId", form.ageGroupId); body.append("categoryId", form.categoryId); body.append("levelId", form.levelId); }
     body.append("status", form.status);
     body.append("readAloud", String(form.readAloud));
     body.append("shape", JSON.stringify(shapes.question));
-    body.append("options", JSON.stringify(options.map((text, index) => ({ text, isCorrect: index === correctAnswer, mediaType: attachments[`option${index}`]?.type || null, shape: shapes[`option${index}`] }))));
+    body.append("options", JSON.stringify(options.map((text, index) => ({ text, isCorrect: index === correctAnswer, mediaType: attachments[`option${index}`]?.type || null, mediaUrl: attachments[`option${index}`]?.resourceId ? attachments[`option${index}`].url : null, shape: shapes[`option${index}`] }))));
     if (attachments.question?.file) body.append("questionMedia", attachments.question.file, attachments.question.file.name);
+    if (attachments.question?.resourceId) body.append("questionResourceUrl", attachments.question.url);
     body.append("questionMediaType", attachments.question?.type || "");
     body.append("removeMedia", removedMedia.join(","));
     options.forEach((_, index) => { const item = attachments[`option${index}`]; if (item?.file) body.append(`optionMedia${index}`, item.file, item.file.name); });
     try {
       if (editId) await axios.put(`/admin/questions/${editId}`, body); else await axios.post("/admin/questions", body);
       toast.success(editId ? "Question updated successfully." : form.status === "draft" ? "Question saved as draft." : "Question published successfully.");
-      navigate(editId ? `/categories/level-questions?ageGroup=${form.ageGroupId}&category=${form.categoryId}&level=${form.levelId}` : "/content");
+      invalidateCatalogPrefix("questions:");
+      invalidateCatalogPrefix("games:levels:");
+      invalidateCatalogPrefix("learn:");
+      navigate(isLearningQuestion ? `/categories/level-questions?learningLevel=${learningLevelId}&program=${learningProgramId}` : editId ? `/categories/level-questions?ageGroup=${form.ageGroupId}&category=${form.categoryId}&level=${form.levelId}` : "/content");
     } catch (error) {
       toast.error(error.response?.data?.message || error.response?.data?.errors?.[0]?.message || "Question could not be saved. Please try again.");
     } finally {
@@ -216,7 +235,7 @@ export default function AddQuestion() {
           description={editId ? "Update this question and save your changes." : "Build a complete, learner-ready question in one place."}
         />
 
-        {!editId && <section className={`mb-6 overflow-hidden rounded-2xl border shadow-sm ${aiRequested ? "border-purple-300 ring-4 ring-purple-100" : "border-purple-200"}`}>
+        {!editId && !isLearningQuestion && <section className={`mb-6 overflow-hidden rounded-2xl border shadow-sm ${aiRequested ? "border-purple-300 ring-4 ring-purple-100" : "border-purple-200"}`}>
           <div className="flex flex-wrap items-center justify-between gap-4 bg-gradient-to-r from-purple-700 to-fuchsia-600 px-5 py-4 text-white">
             <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-white/15"><Sparkles size={22}/></span><div><h2 className="font-black">AI question assistant</h2><p className="text-sm text-purple-100">Select the learning placement, describe what to cover, then generate an editable draft.</p></div></div>
             <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-black">OPTIONAL</span>
@@ -239,7 +258,7 @@ export default function AddQuestion() {
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
               <div className="mb-6 flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 font-bold text-purple-700">1</span><div><h2 className="font-bold text-slate-900">Question and answers</h2><p className="text-sm text-slate-500">Write one clear prompt and four distinct choices.</p></div></div>
-              <div className="flex items-center justify-between gap-3"><label className="text-sm font-semibold text-slate-700">Question <span className="text-red-500">*</span></label><MediaButton target="question" attachment={attachments.question} onChange={setAttachment} /></div>
+              <div className="flex items-center justify-between gap-3"><label className="text-sm font-semibold text-slate-700">Question <span className="text-red-500">*</span></label><MediaButton target="question" attachment={attachments.question} onChange={setAttachment} onResource={setResourceAttachment} /></div>
               <RichTextEditor value={form.questionText} onChange={(value) => update("questionText", value)} placeholder="Type the question, add formatting, media, or a shape..." error={errors.questionText} />
               <ShapePicker value={shapes.question} onChange={(shape) => setShapes((current) => ({ ...current, question: shape }))} />
               {attachments.question && <AttachmentPreview attachment={attachments.question} onRemove={() => setAttachment("question", null)} />}
@@ -253,7 +272,7 @@ export default function AddQuestion() {
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {options.map((option, index) => (
                   <div key={index} className={`rounded-xl border p-3 transition ${correctAnswer === index ? "border-emerald-400 bg-emerald-50" : "border-slate-200"}`}>
-                    <div className="mb-3 flex items-center justify-between gap-2"><span className="text-xs font-bold uppercase tracking-wide text-slate-500">Option {String.fromCharCode(65 + index)}</span><div className="flex items-center gap-2"><MediaButton compact target={`option${index}`} attachment={attachments[`option${index}`]} onChange={setAttachment} /><button type="button" onClick={() => { setCorrectAnswer(index); setErrors((current) => ({ ...current, correctAnswer: "" })); }} className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${correctAnswer === index ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-emerald-100"}`}><Check size={13} />{correctAnswer === index ? "Correct" : "Mark correct"}</button></div></div>
+                    <div className="mb-3 flex items-center justify-between gap-2"><span className="text-xs font-bold uppercase tracking-wide text-slate-500">Option {String.fromCharCode(65 + index)}</span><div className="flex items-center gap-2"><MediaButton compact target={`option${index}`} attachment={attachments[`option${index}`]} onChange={setAttachment} onResource={setResourceAttachment} /><button type="button" onClick={() => { setCorrectAnswer(index); setErrors((current) => ({ ...current, correctAnswer: "" })); }} className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${correctAnswer === index ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-emerald-100"}`}><Check size={13} />{correctAnswer === index ? "Correct" : "Mark correct"}</button></div></div>
                     <RichTextEditor compact value={option} onChange={(value) => { const next = [...options]; next[index] = value; setOptions(next); setErrors((current) => ({ ...current, options: "" })); }} placeholder="Type and format an answer..." />
                     <ShapePicker compact value={shapes[`option${index}`]} onChange={(shape) => setShapes((current) => ({ ...current, [`option${index}`]: shape }))} />
                     {attachments[`option${index}`] && <AttachmentPreview attachment={attachments[`option${index}`]} onRemove={() => setAttachment(`option${index}`, null)} compact />}
@@ -268,11 +287,11 @@ export default function AddQuestion() {
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
               <div className="mb-6 flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 font-bold text-purple-700">2</span><div><h2 className="font-bold text-slate-900">Learning placement</h2><p className="text-sm text-slate-500">Choose where learners will encounter this question.</p></div></div>
-              <div className="grid gap-5 md:grid-cols-3">
+              {isLearningQuestion ? <div className="rounded-xl border border-purple-100 bg-purple-50 p-4"><p className="font-bold text-purple-900">CEDU-LEARN curriculum level</p><p className="mt-1 text-sm text-purple-700">This question is locked to the level you opened. Return to Categories &amp; Levels to choose another level.</p></div> : <div className="grid gap-5 md:grid-cols-3">
                 <SelectField label="Age group" value={form.ageGroupId} disabled={catalogLoading} error={errors.ageGroupId} onChange={(value) => { setForm((current) => ({ ...current, ageGroupId: value, categoryId: "", levelId: "" })); setErrors((current) => ({ ...current, ageGroupId: "" })); }} options={ageGroups.map((item) => ({ value: item.id, label: `${item.name} (${item.min_age}-${item.max_age})` }))} placeholder="Select age group" />
                 <SelectField label="Category" value={form.categoryId} disabled={!form.ageGroupId} error={errors.categoryId} onChange={(value) => { setForm((current) => ({ ...current, categoryId: value, levelId: "" })); setErrors((current) => ({ ...current, categoryId: "" })); }} options={categories.map((item) => ({ value: item.id, label: item.name }))} placeholder="Select category" />
                 <SelectField label="Level" value={form.levelId} disabled={!form.categoryId} error={errors.levelId} onChange={(value) => update("levelId", value)} options={levels.map((item) => ({ value: item.id, label: `Level ${item.level_number}: ${item.name}` }))} placeholder="Select level" />
-              </div>
+              </div>}
             </section>
 
           </div>
@@ -294,8 +313,9 @@ export default function AddQuestion() {
   );
 }
 
-function MediaButton({ target, attachment, onChange, compact = false }) {
+function MediaButton({ target, attachment, onChange, onResource, compact = false }) {
   const [open, setOpen] = useState(false);
+  const [resourcePickerOpen, setResourcePickerOpen] = useState(false);
   const inputs = useRef({});
   return <div className="relative">
     <button type="button" onClick={() => setOpen((value) => !value)} className={`flex items-center gap-1.5 rounded-lg border font-semibold transition ${attachment ? "border-purple-300 bg-purple-50 text-purple-700" : "border-slate-200 bg-white text-slate-500 hover:border-purple-300 hover:text-purple-600"} ${compact ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"}`} aria-label="Attach media" aria-expanded={open}>
@@ -303,11 +323,13 @@ function MediaButton({ target, attachment, onChange, compact = false }) {
     </button>
     {open && <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
       <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Choose media type</p>
+      <button type="button" onClick={() => { setOpen(false); setResourcePickerOpen(true); }} className="mb-1 flex w-full items-center gap-3 rounded-lg bg-purple-50 p-2.5 text-left hover:bg-purple-100"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-purple-600"><Images size={18}/></span><span><span className="block text-sm font-semibold text-purple-700">Choose from Resources</span><span className="block text-xs text-purple-500">Reuse an existing image</span></span></button>
       {MEDIA_TYPES.map(({ id, label, help, accept, icon: Icon }) => <React.Fragment key={id}>
         <input ref={(node) => { inputs.current[id] = node; }} type="file" accept={accept} className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) onChange(target, file, id); event.target.value = ""; setOpen(false); }} />
         <button type="button" onClick={() => inputs.current[id]?.click()} className="flex w-full items-center gap-3 rounded-lg p-2.5 text-left hover:bg-purple-50"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><Icon size={18} /></span><span><span className="block text-sm font-semibold text-slate-700">{label}</span><span className="block text-xs text-slate-400">{help}</span></span></button>
       </React.Fragment>)}
     </div>}
+    {resourcePickerOpen && <ResourcePicker onClose={() => setResourcePickerOpen(false)} onSelect={(resource) => onResource(target, resource)} />}
   </div>;
 }
 

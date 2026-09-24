@@ -53,7 +53,8 @@ export const canAccess = (user, page) => {
   if (!user) return false;
   if (user.role === "Super Admin" || user.permissions?.includes("*")) return true;
   if (page === "log-out") return true;
-  return user.permissions?.includes(page) || false;
+  const permission = page === "resources" ? "content" : page;
+  return user.permissions?.includes(permission) || false;
 };
 
 export const getDefaultRoute = (user) => {

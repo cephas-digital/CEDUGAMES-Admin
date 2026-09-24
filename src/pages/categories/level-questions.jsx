@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { AlertCircle, CheckCircle2, Clock3, FileText, ImageIcon, Loader2, Pencil, Plus, Sparkles, Trash2, Trophy, Video, Volume2, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock3, FileText, ImageIcon, Loader2, Pencil, Plus, Sparkles, Trash2, Trophy, UploadCloud, Video, Volume2, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import PageNavigation from "../../components/page-navigation";
 import { useURL } from "../../data/Config";
+import { loadCatalogData, readCatalogCache } from "../../data/catalog-cache";
 
 const assetUrl = (value) => value?.startsWith("/") ? `${useURL}${value}` : value;
 
@@ -13,28 +14,47 @@ export default function LevelQuestions() {
   const levelId = params.get("level");
   const ageId = params.get("ageGroup");
   const categoryId = params.get("category");
-  const [level, setLevel] = useState(null);
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const learningLevelId = params.get("learningLevel");
+  const programId = params.get("program");
+  const selectedLevelId = learningLevelId || levelId;
+  const cacheKey = `questions:${learningLevelId ? "learn" : "games"}:${selectedLevelId || "none"}`;
+  const cached = readCatalogCache(cacheKey);
+  const [level, setLevel] = useState(cached?.level || null);
+  const [questions, setQuestions] = useState(cached?.questions || []);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState("");
   const [generatorOpen, setGeneratorOpen] = useState(false);
 
-  useEffect(() => {
-    if (!levelId) { setError("No level was selected."); setLoading(false); return; }
-    axios.get(`/admin/levels/${levelId}/questions`)
-      .then(({ data }) => { setLevel(data.level); setQuestions(data.questions || []); })
-      .catch((requestError) => setError(requestError.response?.data?.message || "Unable to load questions."))
-      .finally(() => setLoading(false));
-  }, [levelId]);
+  const load = useCallback(async (force = false) => {
+    if (!selectedLevelId) { setError("No level was selected."); setLoading(false); return; }
+    const existing = readCatalogCache(cacheKey);
+    if (!force && existing) { setLevel(existing.level); setQuestions(existing.questions || []); setLoading(false); return; }
+    setLoading(true); setError("");
+    try {
+      const data = await loadCatalogData(cacheKey, async () => (await axios.get(learningLevelId ? `/admin/catalog/learning-items/${learningLevelId}/questions` : `/admin/levels/${levelId}/questions`)).data, { force });
+      setLevel(data.level); setQuestions(data.questions || []);
+    } catch (requestError) { setError(requestError.response?.data?.message || "Unable to load questions."); }
+    finally { setLoading(false); }
+  }, [cacheKey, levelId, learningLevelId, selectedLevelId]);
 
-  const addUrl = `/content/add-question?ageGroup=${ageId}&category=${categoryId}&level=${levelId}`;
-  const backUrl = `/categories/view-categories?ageGroup=${ageId}&category=${categoryId}`;
+  useEffect(() => { load(); }, [load]);
+
+  const addUrl = learningLevelId ? `/content/add-question?learningLevel=${learningLevelId}&program=${programId}` : `/content/add-question?ageGroup=${ageId}&category=${categoryId}&level=${levelId}`;
+  const bulkUrl = learningLevelId ? `/content/upload-files?learningLevel=${learningLevelId}&program=${programId}` : `/content/upload-files?ageGroup=${ageId}&category=${categoryId}&level=${levelId}`;
+  const backUrl = learningLevelId ? `/categories/learn?program=${programId}` : `/categories/view-categories?ageGroup=${ageId}&category=${categoryId}`;
 
   return <div className="mx-auto w-full max-w-7xl px-6 pb-12">
-    <PageNavigation items={[{ label: "Levels", to: backUrl }, { label: level?.name || "Questions" }]} title={level ? `Level ${level.level_number}: ${level.name}` : "Level questions"} description={`${questions.length} question${questions.length === 1 ? "" : "s"} in this level`} action={<div className="flex flex-wrap gap-2"><button onClick={() => setGeneratorOpen(true)} disabled={!levelId || !ageId || !categoryId} className="flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3 text-sm font-bold text-purple-700 transition hover:bg-purple-100 disabled:opacity-50"><Sparkles size={18}/>Generate with AI</button><Link to={addUrl} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-purple-700"><Plus size={18}/>Add manually</Link></div>} />
+    <PageNavigation items={[{ label: "Levels", to: backUrl }, { label: level?.name || "Questions" }]} title={level ? `Level ${level.level_number}: ${level.name}` : "Level questions"} description={`${questions.length} question${questions.length === 1 ? "" : "s"} in this level`} action={<div className="flex flex-wrap gap-2"><Link to={bulkUrl} className="flex items-center gap-2 rounded-xl border border-purple-200 bg-white px-5 py-3 text-sm font-bold text-purple-700"><UploadCloud size={18}/>Bulk upload</Link><button onClick={() => setGeneratorOpen(true)} disabled={!levelId || !ageId || !categoryId} className="flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3 text-sm font-bold text-purple-700 transition hover:bg-purple-100 disabled:opacity-50"><Sparkles size={18}/>Generate with AI</button><Link to={addUrl} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-purple-700"><Plus size={18}/>Add manually</Link></div>} />
     {level && <div className="mb-6 flex flex-wrap gap-3"><Stat icon={Trophy} label={`${level.points_per_question} points per answer`} /><Stat icon={Clock3} label={`${level.time_limit_seconds} seconds per question`} /></div>}
     {loading ? <div className="flex items-center justify-center gap-3 rounded-2xl border bg-white p-20 text-slate-500"><Loader2 className="animate-spin text-purple-600"/>Loading questions...</div> : error ? <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700"><AlertCircle/>{error}</div> : questions.length ? <div className="space-y-5">{questions.map((question, index) => <QuestionPreview key={question.id} question={question} number={index + 1} editUrl={`${addUrl}&question=${question.id}`} />)}</div> : <div className="rounded-3xl border-2 border-dashed border-purple-200 bg-white p-16 text-center"><span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-100 text-purple-600"><FileText size={26}/></span><h2 className="mt-5 text-xl font-bold text-slate-900">No questions in this level</h2><p className="mt-2 text-sm text-slate-500">Create the first question and it will appear here.</p><Link to={addUrl} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 font-bold text-white"><Plus size={17}/>Create question</Link></div>}
-    {generatorOpen && <QuestionGenerator ageGroupId={ageId} categoryId={categoryId} levelId={levelId} level={level} onClose={() => setGeneratorOpen(false)} onImported={() => { setGeneratorOpen(false); window.location.reload(); }}/>}
+    {generatorOpen && <QuestionGenerator
+      ageGroupId={ageId}
+      categoryId={categoryId}
+      levelId={levelId}
+      level={level}
+      onClose={() => setGeneratorOpen(false)}
+      onImported={() => { setGeneratorOpen(false); load(true); }}
+    />}
   </div>;
 }
 

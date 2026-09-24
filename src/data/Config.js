@@ -2,6 +2,31 @@ import axios from "axios";
 
 let expiryTimer;
 let loggingOut = false;
+const startSubmitFeedback = config => {
+	if (typeof document === "undefined" || !["post", "put", "patch"].includes(String(config.method).toLowerCase())) return config;
+	const active = document.activeElement;
+	const form = active?.closest?.("form") || document.querySelector('[role="dialog"] form');
+	const button = active?.tagName === "BUTTON" ? active : form?.querySelector('button[type="submit"], button:not([type])');
+	if (!button || button.dataset.requestLoading === "true") return config;
+	button.dataset.requestLoading = "true";
+	button.setAttribute("aria-busy", "true");
+	button.disabled = true;
+	const spinner = document.createElement("span");
+	spinner.className = "request-button-spinner";
+	spinner.setAttribute("aria-hidden", "true");
+	button.prepend(spinner);
+	config.__submitButton = button;
+	return config;
+};
+
+const stopSubmitFeedback = config => {
+	const button = config?.__submitButton;
+	if (!button) return;
+	button.querySelector(".request-button-spinner")?.remove();
+	button.removeAttribute("aria-busy");
+	delete button.dataset.requestLoading;
+	button.disabled = false;
+};
 
 const forceLogout = () => {
 	if (loggingOut) return;
@@ -28,9 +53,12 @@ const scheduleExpiry = token => {
 	} catch (_) { forceLogout(); }
 };
 
+axios.interceptors.request.use(config => startSubmitFeedback(config));
+
 axios.interceptors.response.use(
-	response => response,
+	response => { stopSubmitFeedback(response.config); return response; },
 	error => {
+		stopSubmitFeedback(error?.config);
 		if (error?.response?.status === 401 && localStorage.getItem("DATA_TOKEN")) forceLogout();
 		return Promise.reject(error);
 	}
@@ -63,5 +91,6 @@ export const useURL4 =
 
 export const SetDefaultHeaders = () => {
 	axios.defaults.baseURL = useURL;
+	axios.defaults.timeout = 30000;
 	axios.defaults.headers.common["frontend-source"] = "webuser";
 };

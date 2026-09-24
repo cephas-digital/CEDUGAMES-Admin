@@ -1,13 +1,322 @@
-import React,{useCallback,useEffect,useState}from"react";import axios from"axios";import{Eye,Pencil,Plus,Trash2}from"lucide-react";import{useNavigate,useSearchParams}from"react-router-dom";import{toast}from"react-toastify";
-import PageNavigation from"../../components/page-navigation";import ConfirmDialog from"../../components/confirm-dialog";import FormDialog from"../../components/form-dialog";
-import ImageUploadField from"../../components/image-upload-field";import{removeCatalogImage,uploadCatalogImage}from"../../data/media";
-const blank={name:"",description:"",imageUrl:""},field="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100";
-export default function GamesCategories(){const nav=useNavigate(),[params]=useSearchParams(),ageId=params.get("ageGroup"),[age,setAge]=useState(null),[items,setItems]=useState([]),[loading,setLoading]=useState(true),[form,setForm]=useState(blank),[imageFile,setImageFile]=useState(null),[editing,setEditing]=useState(null),[dialog,setDialog]=useState(false),[deleting,setDeleting]=useState(null),[busy,setBusy]=useState(false);
-const load=useCallback(async()=>{if(!ageId)return;setLoading(true);try{const[g,c]=await Promise.all([axios.get("/admin/catalog/age-groups"),axios.get(`/admin/catalog/age-groups/${ageId}/categories`)]);setAge(g.data.ageGroups.find(x=>x.id===ageId));setItems(c.data.categories||[])}catch(e){toast.error("Unable to load categories")}finally{setLoading(false)}},[ageId]);useEffect(()=>{load()},[load]);
-const open=(item=null)=>{setEditing(item);setForm(item?{name:item.name,description:item.description||"",imageUrl:item.image_url||""}:blank);setImageFile(null);setDialog(true)};
-const save=async e=>{e.preventDefault();setBusy(true);let uploaded="";try{uploaded=imageFile?await uploadCatalogImage(imageFile):"";const payload={...form,imageUrl:uploaded||form.imageUrl,ageGroupId:ageId};editing?await axios.put(`/admin/catalog/categories/${editing.id}`,payload):await axios.post("/admin/catalog/categories",payload);if(uploaded&&form.imageUrl)await removeCatalogImage(form.imageUrl).catch(()=>{});toast.success(`Category ${editing?"updated":"created"}`);setDialog(false);load()}catch(x){if(uploaded)await removeCatalogImage(uploaded).catch(()=>{});toast.error(x.response?.data?.message||x.response?.data?.errors?.[0]?.message||"Unable to save category")}finally{setBusy(false)}};
-const remove=async()=>{setBusy(true);try{await axios.delete(`/admin/catalog/categories/${deleting.id}`);toast.success("Category deleted");setDeleting(null);load()}catch(e){toast.error(e.response?.data?.message||"Unable to delete category")}finally{setBusy(false)}};
-if(!ageId)return <div className="p-8">Select an age group first.</div>;return <div className="mx-auto w-full max-w-7xl px-6 pb-10"><PageNavigation items={[{label:"Age Groups",to:"/categories"},{label:age?.name||"Categories"}]} title={`${age?.name||"Age group"} Categories`} description={`Create subjects and learning categories for ages ${age?.min_age||""}–${age?.max_age||""}.`} action={<button onClick={()=>open()} className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-bold text-white"><Plus size={18}/>Add Category</button>}/>
-{loading?<div className="rounded-2xl bg-white p-16 text-center text-slate-400">Loading categories...</div>:items.length?<div className="overflow-hidden rounded-2xl border bg-white shadow-sm"><table className="w-full text-left"><thead className="bg-slate-50 text-sm text-slate-500"><tr><th className="px-6 py-4">Category</th><th className="px-6 py-4">Description</th><th className="px-6 py-4">Levels</th><th className="px-6 py-4 text-right">Actions</th></tr></thead><tbody className="divide-y">{items.map(x=><tr key={x.id}><td className="px-6 py-5 font-bold text-slate-900">{x.name}</td><td className="max-w-xl px-6 py-5 text-sm text-slate-600">{x.description||"No description"}</td><td className="px-6 py-5"><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">{x.level_count} levels</span></td><td className="px-6 py-5"><div className="flex justify-end gap-3"><button onClick={()=>nav(`/categories/view-categories?ageGroup=${ageId}&category=${x.id}`)} className="flex items-center gap-1 text-sm font-semibold text-slate-600"><Eye size={15}/>View</button><button onClick={()=>open(x)} className="flex items-center gap-1 text-sm font-semibold text-purple-600"><Pencil size={15}/>Edit</button><button onClick={()=>setDeleting(x)} className="flex items-center gap-1 text-sm font-semibold text-red-500"><Trash2 size={15}/>Delete</button></div></td></tr>)}</tbody></table></div>:<div className="rounded-2xl border-2 border-dashed bg-white p-16 text-center"><h2 className="text-lg font-bold">No categories yet</h2><p className="mt-2 text-sm text-slate-500">Create the first category under this age group.</p><button onClick={()=>open()} className="mt-5 rounded-xl bg-purple-600 px-5 py-3 font-semibold text-white">Add Category</button></div>}
-<FormDialog open={dialog} title={editing?"Edit category":"Create category"} onClose={()=>setDialog(false)}><form onSubmit={save} className="space-y-5"><label className="block text-sm font-semibold">Category name<input required className={`${field} mt-2`} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Mathematics"/></label><label className="block text-sm font-semibold">Description<textarea required rows="4" className={`${field} mt-2 resize-none`} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label><ImageUploadField file={imageFile} currentUrl={form.imageUrl} onChange={setImageFile}/><div className="flex justify-end gap-3"><button type="button" onClick={()=>setDialog(false)} className="rounded-xl border px-5 py-3 font-semibold">Cancel</button><button disabled={busy} className="rounded-xl bg-purple-600 px-6 py-3 font-semibold text-white">{busy?"Uploading and saving...":"Save category"}</button></div></form></FormDialog>
-<ConfirmDialog open={!!deleting} loading={busy} onCancel={()=>setDeleting(null)} onConfirm={remove} title="Delete category?" message={`Deleting ${deleting?.name||"this category"} will also permanently remove every level under it.`}/></div>}
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
+
+import axios from "axios";
+import PageNavigation from "../../components/page-navigation";
+import ConfirmDialog from "../../components/confirm-dialog";
+import FormDialog from "../../components/form-dialog";
+import ImageUploadField from "../../components/image-upload-field";
+import CatalogEmptyState from "../../components/catalog-empty-state";
+import { invalidateCatalogPrefix, loadCatalogData, readCatalogCache } from "../../data/catalog-cache";
+import {
+  removeCatalogImage,
+  uploadCatalogImage,
+} from "../../data/media";
+
+const emptyForm = {
+  name: "",
+  description: "",
+  image: null,
+  imageUrl: "",
+};
+
+const AgeCategories = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const ageGroupId = searchParams.get("ageGroup");
+  const cacheKey = `games:categories:${ageGroupId || "none"}`;
+  const cached = readCatalogCache(cacheKey);
+
+  const [ageGroup, setAgeGroup] = useState(cached?.ageGroup || null);
+  const [categories, setCategories] = useState(cached?.categories || []);
+  const [loading, setLoading] = useState(!cached);
+  const [error, setError] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const loadPage = useCallback(async (force = false) => {
+    if (!ageGroupId) {
+      setError("No age group was selected.");
+      setLoading(false);
+      return;
+    }
+
+    const existing = readCatalogCache(cacheKey);
+    if (!force && existing) {
+      setAgeGroup(existing.ageGroup || null);
+      setCategories(existing.categories || []);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await loadCatalogData(cacheKey, async () => {
+        const [ageGroupsResponse, categoriesResponse] = await Promise.all([
+          axios.get("/admin/catalog/age-groups"),
+          axios.get(`/admin/catalog/age-groups/${ageGroupId}/categories`),
+        ]);
+        const ageGroups = ageGroupsResponse?.data?.ageGroups || [];
+        return { ageGroup: ageGroups.find((item) => String(item.id) === String(ageGroupId)) || null, categories: categoriesResponse?.data?.categories || [] };
+      }, { force });
+      setAgeGroup(data.ageGroup);
+      setCategories(data.categories);
+    } catch (requestError) {
+      console.error("Unable to load age categories", requestError);
+      setError(
+        requestError?.response?.data?.message ||
+          "We could not load the categories for this age group. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [ageGroupId, cacheKey]);
+
+  useEffect(() => {
+    loadPage();
+  }, [loadPage]);
+
+  const pageTitle = useMemo(
+    () => (ageGroup?.name ? `${ageGroup.name} Categories` : "Age Group Categories"),
+    [ageGroup],
+  );
+
+  const openCreateDialog = () => {
+    setEditingCategory(null);
+    setForm(emptyForm);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (category) => {
+    setEditingCategory(category);
+    setForm({
+      name: category?.name || "",
+      description: category?.description || "",
+      image: null,
+      imageUrl: category?.image_url || "",
+    });
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    if (saving) return;
+    setDialogOpen(false);
+    setEditingCategory(null);
+    setForm(emptyForm);
+  };
+
+  const saveCategory = async (event) => {
+    event.preventDefault();
+
+    if (!form.name.trim()) {
+      toast.error("Card title is required.");
+      return;
+    }
+
+    if (!form.image && !form.imageUrl) {
+      toast.error("Card image is required.");
+      return;
+    }
+
+    setSaving(true);
+    let uploadedImageUrl = form.imageUrl;
+
+    try {
+      if (form.image) uploadedImageUrl = await uploadCatalogImage(form.image);
+
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim() || undefined,
+        imageUrl: uploadedImageUrl,
+        ageGroupId,
+      };
+
+      if (editingCategory) {
+        await axios.put(`/admin/catalog/categories/${editingCategory.id}`, payload);
+        if (form.image && editingCategory.image_url !== uploadedImageUrl) {
+          await removeCatalogImage(editingCategory.image_url);
+        }
+        toast.success("Category updated successfully.");
+      } else {
+        await axios.post("/admin/catalog/categories", payload);
+        toast.success("Category created successfully.");
+      }
+
+      setDialogOpen(false);
+      setEditingCategory(null);
+      setForm(emptyForm);
+      invalidateCatalogPrefix("games:age-groups");
+      await loadPage(true);
+    } catch (requestError) {
+      if (form.image && uploadedImageUrl && uploadedImageUrl !== form.imageUrl) {
+        await removeCatalogImage(uploadedImageUrl);
+      }
+      toast.error(requestError?.response?.data?.message || "Unable to save category.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteCategory = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+
+    try {
+      await axios.delete(`/admin/catalog/categories/${deleteTarget.id}`);
+      await removeCatalogImage(deleteTarget.image_url);
+      setDeleteTarget(null);
+      invalidateCatalogPrefix("games:age-groups");
+      await loadPage(true);
+      toast.success("Category deleted successfully.");
+    } catch (requestError) {
+      toast.error(requestError?.response?.data?.message || "Unable to delete category.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-7xl px-3 pb-10 sm:px-5 lg:px-6">
+      <PageNavigation
+        title={pageTitle}
+        description="Create and manage game categories for this age group."
+        items={[
+          { label: "Categories & Levels", to: "/categories" },
+          { label: ageGroup?.name || "Age Group" },
+        ]}
+        action={
+          <button className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={openCreateDialog} disabled={!ageGroupId}>
+            <Plus size={18} /> Add Category
+          </button>
+        }
+      />
+
+      {loading ? (
+        <div className="grid min-h-72 place-items-center rounded-2xl border bg-white p-8 text-center shadow-sm" role="status" aria-live="polite">
+          <div><div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-purple-100 border-t-purple-600" />
+          <h3 className="mt-4 text-lg font-bold text-slate-900">Loading categories...</h3>
+          <p className="mt-1 text-sm text-slate-500">Preparing this age group for you.</p></div>
+        </div>
+      ) : error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center" role="alert">
+          <h3 className="text-lg font-bold text-red-800">Categories could not be displayed</h3>
+          <p className="mt-2 text-sm text-red-700">{error}</p>
+          <button className="mt-5 rounded-xl bg-purple-600 px-5 py-3 font-bold text-white" type="button" onClick={loadPage}>Try again</button>
+        </div>
+      ) : categories.length === 0 ? (
+        <CatalogEmptyState
+          title="No categories in this age group yet"
+          message="Create the first game category to start adding levels and questions."
+          actionLabel="Add Category"
+          onAction={openCreateDialog}
+        />
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px] table-fixed text-left">
+            <thead className="bg-slate-50 text-sm text-slate-600">
+              <tr>
+                <th className="w-2/3 px-6 py-4 font-bold">Card</th>
+                <th className="w-1/3 px-6 py-4 text-right font-bold">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {categories.map((category) => (
+                <tr key={category.id} className="transition hover:bg-slate-50/70">
+                  <td className="px-6 py-4 align-middle">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <img className="h-16 w-24 shrink-0 rounded-xl border border-slate-100 object-cover" src={category.image_url} alt="" />
+                      <div className="min-w-0">
+                        <strong className="block truncate text-base text-slate-900">{category.name}</strong>
+                        {category.description ? <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500">{category.description}</p> : <p className="mt-1 text-sm text-slate-400">No description</p>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 align-middle">
+                    <div className="flex flex-wrap justify-end gap-3 text-sm font-semibold">
+                      <button className="flex items-center gap-1 text-purple-600 hover:text-purple-800" type="button" onClick={() => openEditDialog(category)}>
+                        <Pencil size={17} /> Edit
+                      </button>
+                      <button className="flex items-center gap-1 text-red-500 hover:text-red-700" type="button" onClick={() => setDeleteTarget(category)}>
+                        <Trash2 size={17} /> Delete
+                      </button>
+                      <button
+                        className="flex items-center gap-1 text-slate-700 hover:text-purple-700"
+                        type="button"
+                        onClick={() => navigate(`/categories/view-categories?ageGroup=${ageGroupId}&category=${category.id}`)}
+                      >
+                        <Eye size={17} /> Open
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      )}
+
+      <FormDialog
+        open={dialogOpen}
+        title={editingCategory ? "Edit Category" : "Add Category"}
+        onClose={closeDialog}
+      >
+        <form onSubmit={saveCategory} className="space-y-5">
+          <label className="block text-sm font-semibold text-slate-700" htmlFor="category-name">Card title *
+          <input
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+            id="category-name"
+            value={form.name}
+            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Enter category title"
+            required
+          />
+          </label>
+
+          <label className="block text-sm font-semibold text-slate-700" htmlFor="category-description">Description <span className="font-normal text-slate-400">(optional)</span>
+          <textarea
+            className="mt-2 min-h-28 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+            id="category-description"
+            value={form.description}
+            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+            placeholder="Describe this category"
+          />
+          </label>
+
+          <ImageUploadField
+            label="Card image"
+            required
+            file={form.image}
+            currentUrl={form.imageUrl}
+            onChange={(image) => setForm((current) => ({ ...current, image }))}
+          />
+
+          <button className="w-full rounded-xl bg-purple-600 py-3 font-bold text-white transition hover:bg-purple-700 disabled:cursor-wait disabled:opacity-60" type="submit" disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </form>
+      </FormDialog>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete category?"
+        message={`Delete ${deleteTarget?.name || "this category"}? Its related levels and questions may also be removed.`}
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
+        onCancel={() => !deleting && setDeleteTarget(null)}
+        onConfirm={deleteCategory}
+        loading={deleting}
+      />
+    </div>
+  );
+};
+
+export default AgeCategories;

@@ -1,71 +1,84 @@
-import { lazy, Suspense, useEffect } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
-import useAuthStore from "./data/Stores/Authstore";
-import brandLogo from "./assets/cedugames-logo.png";
+import { Navigate, useParams } from "react-router-dom";
 
+import Dashboard from "./pages/dashboard";
+import UserManagement from "./pages/user-management";
+import ManageUser from "./pages/user-management/manage-user";
+import Content from "./pages/content";
+import AddQuestion from "./pages/content/add-question";
+import EditQuestion from "./pages/content/edit-question";
+import UploadFiles from "./pages/content/upload-files";
+import Leaderboard from "./pages/leaderboard";
+import LeaderboardDetails from "./pages/leaderboard/leaderboard-details";
+import CoinSystem from "./pages/coin-system";
+import CreateCoin from "./pages/coin-system/create-coin";
+import EditCoinPackage from "./pages/coin-system/edit-coin-package";
+import EventKeyGuide from "./pages/coin-system/event-key-guide";
+import LifeSettings from "./pages/coin-system/life-settings";
+import Airtime from "./pages/airtime";
+import DailyRewards from "./pages/daily-rewards";
+import Categories from "./pages/categories";
+import AgeGroups from "./pages/categories/age-groups";
+import Learn from "./pages/categories/learn";
+import AddAgeGroup from "./pages/categories/add-age-group";
+import AddLevel from "./pages/categories/add-level";
+import AgeCategories from "./pages/categories/age-categories";
+import EditAgeGroup from "./pages/categories/edit-age-group";
+import EditCategories from "./pages/categories/edit-categories";
+import LevelQuestions from "./pages/categories/level-questions";
+import ViewCategories from "./pages/categories/view-categories";
+import Notifications from "./pages/notifications";
+import NewNotification from "./pages/notifications/new-notification";
+import ViewNotification from "./pages/notifications/view-notification";
+import Settings from "./pages/settings";
+import SettingsSection from "./pages/settings/[id]";
+import Admins from "./pages/admins";
+import LogOut from "./pages/log-out";
+import Resources from "./pages/resources";
+
+// Keeping routed pages in the main bundle prevents stale lazy chunks from
+// blanking the Admin shell after deployment or Back/Forward navigation.
 const pages = {
-  dashboard: lazy(() => import("./pages/dashboard")),
-  "user-management": lazy(() => import("./pages/user-management")),
-  "user-management/manage-user": lazy(() => import("./pages/user-management/manage-user")),
-  content: lazy(() => import("./pages/content")),
-  "content/add-question": lazy(() => import("./pages/content/add-question")),
-  "content/edit-question": lazy(() => import("./pages/content/edit-question")),
-  "content/upload-files": lazy(() => import("./pages/content/upload-files")),
-  leaderboard: lazy(() => import("./pages/leaderboard")),
-  "leaderboard/leaderboard-details": lazy(() => import("./pages/leaderboard/leaderboard-details")),
-  "coin-system": lazy(() => import("./pages/coin-system")),
-  "coin-system/create-coin": lazy(() => import("./pages/coin-system/create-coin")),
-  "coin-system/edit-coin-package": lazy(() => import("./pages/coin-system/edit-coin-package")),
-  "coin-system/event-key-guide": lazy(() => import("./pages/coin-system/event-key-guide")),
-  "coin-system/life-settings": lazy(() => import("./pages/coin-system/life-settings")),
-  airtime: lazy(() => import("./pages/airtime")),
-  "daily-rewards": lazy(() => import("./pages/daily-rewards")),
-  categories: lazy(() => import("./pages/categories")),
-  "categories/add-age-group": lazy(() => import("./pages/categories/add-age-group")),
-  "categories/add-level": lazy(() => import("./pages/categories/add-level")),
-  "categories/age-categories": lazy(() => import("./pages/categories/age-categories")),
-  "categories/edit-age-group": lazy(() => import("./pages/categories/edit-age-group")),
-  "categories/edit-categories": lazy(() => import("./pages/categories/edit-categories")),
-  "categories/level-questions": lazy(() => import("./pages/categories/level-questions")),
-  "categories/view-categories": lazy(() => import("./pages/categories/view-categories")),
-  notifications: lazy(() => import("./pages/notifications")),
-  "notifications/new-notification": lazy(() => import("./pages/notifications/new-notification")),
-  "notifications/view-notification": lazy(() => import("./pages/notifications/view-notification")),
-  settings: lazy(() => import("./pages/settings")),
-  admins: lazy(() => import("./pages/admins")),
-  "log-out": lazy(() => import("./pages/log-out")),
+  dashboard: Dashboard,
+  "user-management": UserManagement,
+  "user-management/manage-user": ManageUser,
+  content: Content,
+  resources: Resources,
+  "content/add-question": AddQuestion,
+  "content/edit-question": EditQuestion,
+  "content/upload-files": UploadFiles,
+  leaderboard: Leaderboard,
+  "leaderboard/leaderboard-details": LeaderboardDetails,
+  "coin-system": CoinSystem,
+  "coin-system/create-coin": CreateCoin,
+  "coin-system/edit-coin-package": EditCoinPackage,
+  "coin-system/event-key-guide": EventKeyGuide,
+  "coin-system/life-settings": LifeSettings,
+  airtime: Airtime,
+  "daily-rewards": DailyRewards,
+  categories: Categories,
+  "categories/age-groups": AgeGroups,
+  "categories/learn": Learn,
+  "categories/add-age-group": AddAgeGroup,
+  "categories/add-level": AddLevel,
+  "categories/age-categories": AgeCategories,
+  "categories/edit-age-group": EditAgeGroup,
+  "categories/edit-categories": EditCategories,
+  "categories/level-questions": LevelQuestions,
+  "categories/view-categories": ViewCategories,
+  notifications: Notifications,
+  "notifications/new-notification": NewNotification,
+  "notifications/view-notification": ViewNotification,
+  settings: Settings,
+  admins: Admins,
+  "log-out": LogOut,
 };
-
-const PageLoader = () => (
-  <div className="grid min-h-[60vh] place-items-center" role="status" aria-live="polite">
-    <div className="text-center">
-      <img src={brandLogo} alt="Cedugames" className="brand-loader-logo" />
-      <div className="brand-loader-dots mt-5" aria-hidden="true"><span /><span /><span /></div>
-    </div>
-    <span className="sr-only">Loading page</span>
-  </div>
-);
 
 export default function PageRender() {
   const { page, id } = useParams();
-  const navigate = useNavigate();
-  const { auth, errors, clearErrors } = useAuthStore();
 
-  useEffect(() => {
-    if (auth?.isAuth && errors?.errorText) {
-      if (page !== "login" && page !== "register") navigate("/");
-      clearErrors();
-    }
-    if (auth?.isAuth && (page === "login" || page === "register")) navigate("/");
-  }, [auth?.isAuth, clearErrors, errors?.errorText, navigate, page]);
+  const routeKey = id ? `${page}/${id}` : page;
+  const Component = pages[routeKey] || (page === "settings" && id ? SettingsSection : null);
 
-  const key = id ? `${page}/${id}` : page;
-  const Component = pages[key] || (page === "settings" && id ? lazy(() => import("./pages/settings/[id]")) : null);
   if (!Component) return <Navigate to="/dashboard" replace />;
-
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Component />
-    </Suspense>
-  );
+  return <Component />;
 }
