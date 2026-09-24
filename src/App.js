@@ -7,12 +7,16 @@ import Routers from "./Routes";
 import { SetAuthToken, SetDefaultHeaders } from "./data/Config";
 import { TOKEN } from "./data/Reducers/UserReducer";
 import { Provider } from "react-redux";
+import { useEffect } from "react";
 
-window.addEventListener("load", () => {
+const removeInitialPreloader = () => {
   document.querySelectorAll(".lds-ellipsis,.preloader").forEach((element) => {
-    element.style.display = "none";
+    element.remove();
   });
-}, { once: true });
+};
+
+if (document.readyState === "complete") removeInitialPreloader();
+else window.addEventListener("load", removeInitialPreloader, { once: true });
 
 SetDefaultHeaders();
 
@@ -21,6 +25,8 @@ if (localStorage.getItem(TOKEN)) {
 }
 
 const App = () => {
+  useEffect(removeInitialPreloader, []);
+
   return (
     // <DataProvider>
     //   <Router>

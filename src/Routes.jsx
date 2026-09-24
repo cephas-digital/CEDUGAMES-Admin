@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import { useSelector } from "react-redux";
 import PageRender from "./PageRender";
@@ -17,11 +17,12 @@ const AdminLayout = ({ children }) => (
 
 const ProtectedPage = () => {
   const { isAuth, user } = useSelector((state) => state.auth);
-  const page = window.location.pathname.split("/")[1] || "dashboard";
+  const location = useLocation();
+  const page = location.pathname.split("/")[1] || "dashboard";
 
   return isAuth && canAccess(user, page) ? (
     <AdminLayout>
-      <PageRender />
+      <PageRender key={`${location.pathname}${location.search}`} />
     </AdminLayout>
   ) : (
     <Navigate to={isAuth ? getDefaultRoute(user) : "/"} replace />
