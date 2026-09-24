@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaChevronDown, FaCog, FaGift, FaLayerGroup, FaSignOutAlt, FaBars, FaMobileAlt, FaUsers } from "react-icons/fa";
+import { FaChevronDown, FaCog, FaGift, FaLayerGroup, FaSignOutAlt, FaBars, FaMobileAlt, FaUsers, FaImages } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import CEDUGAMES from "../../assets/cedugames-logo.png";
 import {
@@ -27,6 +27,7 @@ const Sidebar = ({ children, onSelectPage }) => {
     ] },
     { id: "learning", label: "Learning Management", icon: <FaLayerGroup />, children: [
       { to: "/content", label: "Content", icon: <FaBook /> },
+      { to: "/resources", label: "Resources", icon: <FaImages />, page: "content" },
       { to: "/categories", label: "Categories & Levels", icon: <FaTrophy /> },
     ] },
     { id: "rewards", label: "Rewards & Wallet", icon: <FaGift />, children: [
