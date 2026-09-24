@@ -2,7 +2,7 @@
   "short_name": "Cedugames Admin",
   "name": "Cedugames Administration",
   "icons": [
-    { "src": "cedugames-logo.png", "type": "image/png", "sizes": "1983x793", "purpose": "any" }
+    { "src": "cedugames-logo.png?v=cedu-2026", "type": "image/png", "sizes": "1983x793", "purpose": "any" }
   ],
   "start_url": ".",
   "display": "standalone",
