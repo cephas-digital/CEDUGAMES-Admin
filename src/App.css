@@ -38,6 +38,12 @@ button, input, select, textarea { font: inherit; }
 .nav main .overflow-x-auto > table:not([class*="min-w-"]) {
   min-width: 760px;
 }
+
+/* Keep every Admin table aligned with the same small left/right breathing room. */
+.nav main :where(.overflow-x-auto, .overflow-hidden):has(> table) {
+  width: calc(100% - 1rem);
+  margin-inline: auto;
+}
 .manrope {
   font-family: Manrope;
 }
