@@ -8,6 +8,7 @@ import ConfirmDialog from "../../components/confirm-dialog";
 import FormDialog from "../../components/form-dialog";
 import ImageUploadField from "../../components/image-upload-field";
 import { removeCatalogImage, uploadCatalogImage } from "../../data/media";
+import { invalidateCatalogPrefix, loadCatalogData, readCatalogCache } from "../../data/catalog-cache";
 
 const blank = { name: "", levelNumber: "", description: "", imageUrl: "", pointsPerQuestion: 10, timeLimitSeconds: 30, questionsPerPlay: 10 };
 const field = "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100";
@@ -17,10 +18,12 @@ export default function CategoryLevels() {
   const [params] = useSearchParams();
   const ageId = params.get("ageGroup");
   const categoryId = params.get("category");
-  const [age, setAge] = useState(null);
-  const [category, setCategory] = useState(null);
-  const [levels, setLevels] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `games:levels:${ageId || "none"}:${categoryId || "none"}`;
+  const cached = readCatalogCache(cacheKey);
+  const [age, setAge] = useState(cached?.age || null);
+  const [category, setCategory] = useState(cached?.category || null);
+  const [levels, setLevels] = useState(cached?.levels || []);
+  const [loading, setLoading] = useState(!cached);
   const [dialog, setDialog] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -29,14 +32,17 @@ export default function CategoryLevels() {
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState(() => localStorage.getItem("cedugames-level-view") || "table");
 
-  const load = async () => {
+  const load = async (force = false) => {
     if (!ageId || !categoryId) return;
+    const existing = readCatalogCache(cacheKey);
+    if (!force && existing) { setAge(existing.age); setCategory(existing.category); setLevels(existing.levels || []); setLoading(false); return; }
     setLoading(true);
     try {
-      const [ageResponse, categoryResponse, levelResponse] = await Promise.all([axios.get("/admin/catalog/age-groups"), axios.get(`/admin/catalog/age-groups/${ageId}/categories`), axios.get(`/admin/catalog/categories/${categoryId}/levels`)]);
-      setAge(ageResponse.data.ageGroups.find((item) => item.id === ageId));
-      setCategory(categoryResponse.data.categories.find((item) => item.id === categoryId));
-      setLevels(levelResponse.data.levels || []);
+      const data = await loadCatalogData(cacheKey, async () => {
+        const [ageResponse, categoryResponse, levelResponse] = await Promise.all([axios.get("/admin/catalog/age-groups"), axios.get(`/admin/catalog/age-groups/${ageId}/categories`), axios.get(`/admin/catalog/categories/${categoryId}/levels`)]);
+        return { age: ageResponse.data.ageGroups.find((item) => item.id === ageId), category: categoryResponse.data.categories.find((item) => item.id === categoryId), levels: levelResponse.data.levels || [] };
+      }, { force });
+      setAge(data.age); setCategory(data.category); setLevels(data.levels);
     } catch { toast.error("Unable to load category levels"); }
     finally { setLoading(false); }
   };
@@ -52,13 +58,13 @@ export default function CategoryLevels() {
   const save = async (event) => {
     event.preventDefault(); setBusy(true);
     let uploaded = "";
-    try { uploaded = imageFile ? await uploadCatalogImage(imageFile) : ""; const payload = { ...form, imageUrl: uploaded || form.imageUrl, categoryId, levelNumber: Number(form.levelNumber), pointsPerQuestion: Number(form.pointsPerQuestion), timeLimitSeconds: Number(form.timeLimitSeconds), questionsPerPlay: Number(form.questionsPerPlay) }; editing ? await axios.put(`/admin/catalog/levels/${editing.id}`, payload) : await axios.post("/admin/catalog/levels", payload); if (uploaded && form.imageUrl) await removeCatalogImage(form.imageUrl).catch(() => {}); toast.success(`Level ${editing ? "updated" : "created"}`); setDialog(false); load(); }
+    try { uploaded = imageFile ? await uploadCatalogImage(imageFile) : ""; const payload = { ...form, imageUrl: uploaded || form.imageUrl, categoryId, levelNumber: Number(form.levelNumber), pointsPerQuestion: Number(form.pointsPerQuestion), timeLimitSeconds: Number(form.timeLimitSeconds), questionsPerPlay: Number(form.questionsPerPlay) }; editing ? await axios.put(`/admin/catalog/levels/${editing.id}`, payload) : await axios.post("/admin/catalog/levels", payload); if (uploaded && form.imageUrl) await removeCatalogImage(form.imageUrl).catch(() => {}); toast.success(`Level ${editing ? "updated" : "created"}`); setDialog(false); invalidateCatalogPrefix("games:levels:"); load(true); }
     catch (error) { if (uploaded) await removeCatalogImage(uploaded).catch(() => {}); toast.error(error.response?.data?.message || error.response?.data?.errors?.[0]?.message || "Unable to save level"); }
     finally { setBusy(false); }
   };
   const remove = async () => {
     setBusy(true);
-    try { await axios.delete(`/admin/catalog/levels/${deleting.id}`); toast.success("Level deleted"); setDeleting(null); load(); }
+    try { await axios.delete(`/admin/catalog/levels/${deleting.id}`); toast.success("Level deleted"); setDeleting(null); invalidateCatalogPrefix("games:levels:"); invalidateCatalogPrefix("questions:games:"); load(true); }
     catch (error) { toast.error(error.response?.data?.message || "Unable to delete level"); }
     finally { setBusy(false); }
   };

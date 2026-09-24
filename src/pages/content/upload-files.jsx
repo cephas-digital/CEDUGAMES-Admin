@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, FileUp, Loader2, UploadCloud } from "lucide-
 import { toast } from "react-toastify";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageNavigation from "../../components/page-navigation";
+import { invalidateCatalogPrefix } from "../../data/catalog-cache";
 
   const EXPECTED_HEADERS = ["Questions", "Option A", "Option B", "Option C", "Option D", "Correct Answer"];
   const fieldClass = "mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100";
@@ -49,6 +50,7 @@ import PageNavigation from "../../components/page-navigation";
       body.append("file", file); body.append("ageGroupId", form.ageGroupId); body.append("categoryId", form.categoryId); body.append("levelId", form.levelId); body.append("status", form.status);
       try {
         const { data } = await axios.post("/admin/questions/bulk", body);
+        invalidateCatalogPrefix("questions:"); invalidateCatalogPrefix("games:levels:");
         toast.success(data.message); navigate(`/categories/level-questions?ageGroup=${form.ageGroupId}&category=${form.categoryId}&level=${form.levelId}`);
       } catch (error) {
         const messages = error.response?.data?.errors || [error.response?.data?.message || "Questions could not be uploaded."];

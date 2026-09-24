@@ -26,6 +26,7 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageNavigation from "../../components/page-navigation";
 import { useURL } from "../../data/Config";
+import { invalidateCatalogPrefix } from "../../data/catalog-cache";
 
 const EMPTY_OPTIONS = ["", "", "", ""];
 const EMPTY_SHAPES = { question: null, option0: null, option1: null, option2: null, option3: null };
@@ -202,6 +203,9 @@ export default function AddQuestion() {
     try {
       if (editId) await axios.put(`/admin/questions/${editId}`, body); else await axios.post("/admin/questions", body);
       toast.success(editId ? "Question updated successfully." : form.status === "draft" ? "Question saved as draft." : "Question published successfully.");
+      invalidateCatalogPrefix("questions:");
+      invalidateCatalogPrefix("games:levels:");
+      invalidateCatalogPrefix("learn:");
       navigate(isLearningQuestion ? `/categories/level-questions?learningLevel=${learningLevelId}&program=${learningProgramId}` : editId ? `/categories/level-questions?ageGroup=${form.ageGroupId}&category=${form.categoryId}&level=${form.levelId}` : "/content");
     } catch (error) {
       toast.error(error.response?.data?.message || error.response?.data?.errors?.[0]?.message || "Question could not be saved. Please try again.");

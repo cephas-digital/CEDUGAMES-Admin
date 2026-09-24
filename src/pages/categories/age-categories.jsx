@@ -9,6 +9,7 @@ import ConfirmDialog from "../../components/confirm-dialog";
 import FormDialog from "../../components/form-dialog";
 import ImageUploadField from "../../components/image-upload-field";
 import CatalogEmptyState from "../../components/catalog-empty-state";
+import { invalidateCatalogPrefix, loadCatalogData, readCatalogCache } from "../../data/catalog-cache";
 import {
   removeCatalogImage,
   uploadCatalogImage,
@@ -25,10 +26,12 @@ const AgeCategories = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const ageGroupId = searchParams.get("ageGroup");
+  const cacheKey = `games:categories:${ageGroupId || "none"}`;
+  const cached = readCatalogCache(cacheKey);
 
-  const [ageGroup, setAgeGroup] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [ageGroup, setAgeGroup] = useState(cached?.ageGroup || null);
+  const [categories, setCategories] = useState(cached?.categories || []);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -37,9 +40,17 @@ const AgeCategories = () => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const loadPage = useCallback(async () => {
+  const loadPage = useCallback(async (force = false) => {
     if (!ageGroupId) {
       setError("No age group was selected.");
+      setLoading(false);
+      return;
+    }
+
+    const existing = readCatalogCache(cacheKey);
+    if (!force && existing) {
+      setAgeGroup(existing.ageGroup || null);
+      setCategories(existing.categories || []);
       setLoading(false);
       return;
     }
@@ -48,16 +59,16 @@ const AgeCategories = () => {
     setError("");
 
     try {
-      const [ageGroupsResponse, categoriesResponse] = await Promise.all([
-        axios.get("/admin/catalog/age-groups"),
-        axios.get(`/admin/catalog/age-groups/${ageGroupId}/categories`),
-      ]);
-
-      const ageGroups = ageGroupsResponse?.data?.ageGroups || [];
-      const categoryItems = categoriesResponse?.data?.categories || [];
-
-      setAgeGroup(ageGroups.find((item) => String(item.id) === String(ageGroupId)) || null);
-      setCategories(categoryItems);
+      const data = await loadCatalogData(cacheKey, async () => {
+        const [ageGroupsResponse, categoriesResponse] = await Promise.all([
+          axios.get("/admin/catalog/age-groups"),
+          axios.get(`/admin/catalog/age-groups/${ageGroupId}/categories`),
+        ]);
+        const ageGroups = ageGroupsResponse?.data?.ageGroups || [];
+        return { ageGroup: ageGroups.find((item) => String(item.id) === String(ageGroupId)) || null, categories: categoriesResponse?.data?.categories || [] };
+      }, { force });
+      setAgeGroup(data.ageGroup);
+      setCategories(data.categories);
     } catch (requestError) {
       console.error("Unable to load age categories", requestError);
       setError(
@@ -67,7 +78,7 @@ const AgeCategories = () => {
     } finally {
       setLoading(false);
     }
-  }, [ageGroupId]);
+  }, [ageGroupId, cacheKey]);
 
   useEffect(() => {
     loadPage();
@@ -142,7 +153,8 @@ const AgeCategories = () => {
       setDialogOpen(false);
       setEditingCategory(null);
       setForm(emptyForm);
-      await loadPage();
+      invalidateCatalogPrefix("games:age-groups");
+      await loadPage(true);
     } catch (requestError) {
       if (form.image && uploadedImageUrl && uploadedImageUrl !== form.imageUrl) {
         await removeCatalogImage(uploadedImageUrl);
@@ -160,8 +172,9 @@ const AgeCategories = () => {
     try {
       await axios.delete(`/admin/catalog/categories/${deleteTarget.id}`);
       await removeCatalogImage(deleteTarget.image_url);
-      setCategories((current) => current.filter((item) => item.id !== deleteTarget.id));
       setDeleteTarget(null);
+      invalidateCatalogPrefix("games:age-groups");
+      await loadPage(true);
       toast.success("Category deleted successfully.");
     } catch (requestError) {
       toast.error(requestError?.response?.data?.message || "Unable to delete category.");
