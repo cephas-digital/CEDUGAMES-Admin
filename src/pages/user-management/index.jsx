@@ -30,7 +30,7 @@ const UserManagement = () => {
     const today = new Date().toDateString();
     const registeredToday = users.filter((user) => new Date(user.created_at).toDateString() === today).length;
     const verified = users.filter((user) => user.is_verified).length;
-    const coins = users.reduce((total, user) => total + Number(user.coins_count || 0), 0);
+    const coins = users.reduce((total, user) => total + Number(user.household_coins_count ?? user.coins_count ?? 0), 0);
     return [
       { title: "Total Users", value: users.length.toLocaleString(), icon: <Users className="w-6 h-6 text-purple-600" />, change: "Registered players", gradient: "from-purple-500 to-blue-500" },
       { title: "New Today", value: registeredToday.toLocaleString(), icon: <UserPlus className="w-6 h-6 text-purple-500" />, change: "Today's registrations", gradient: "from-purple-400 to-pink-400" },
@@ -50,6 +50,7 @@ const UserManagement = () => {
     },
     { key: "email", label: "Email address" },
     { key: "age", label: "Age" },
+    { key: "child_count", label: "Children", render: (value) => Number(value || 0).toLocaleString() },
     { key: "coins_count", label: "Coins", render: (value) => Number(value || 0).toLocaleString() },
     { key: "total_xp", label: "XP", render: (value) => Number(value || 0).toLocaleString() },
     {
