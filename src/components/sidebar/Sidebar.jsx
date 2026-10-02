@@ -133,7 +133,7 @@ const Sidebar = ({ children, onSelectPage }) => {
           <div role="dialog" aria-modal="true" aria-labelledby="admin-logout-title" className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-red-50 text-2xl text-red-500"><FaSignOutAlt /></div>
             <h2 id="admin-logout-title" className="mt-5 text-2xl font-bold text-slate-900">Log out of admin?</h2>
-            <p className="mt-2 text-sm text-slate-500">You will need to sign in again to manage CeduGames.</p>
+            <p className="mt-2 text-sm text-slate-500">You will need to sign in again to manage Cedu.</p>
             <div className="mt-7 grid grid-cols-2 gap-3">
               <button onClick={() => setConfirmLogout(false)} className="rounded-xl border border-slate-200 px-4 py-3 font-semibold text-slate-700">Stay signed in</button>
               <button onClick={() => navigate("/log-out")} className="rounded-xl bg-red-500 px-4 py-3 font-semibold text-white">Log out</button>

@@ -47,7 +47,7 @@ const Login = () => {
       <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-fuchsia-200/50 blur-3xl" />
 
       <section className="relative w-full max-w-md rounded-3xl border border-white/80 bg-white px-6 py-9 shadow-[0_24px_70px_rgba(86,52,127,0.14)] sm:px-10">
-        <img className="mx-auto mb-8 w-52" src={CEDUGAMES} alt="Cedugames" />
+        <img className="mx-auto mb-8 w-52" src={CEDUGAMES} alt="Cedu" />
 
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-[#241a30]">Admin login</h1>

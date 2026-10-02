@@ -30,7 +30,7 @@ export default function NotificationsPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-[#1F2937]"><Activity className="text-purple-600" /> Activity & Notifications</h1>
-          <p className="mt-2 text-sm text-gray-500">Monitor important activity across CeduGames and manage user notifications.</p>
+          <p className="mt-2 text-sm text-gray-500">Monitor important activity across Cedu and manage user notifications.</p>
         </div>
         <Link to="/notifications/new-notification"><button className="rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-purple-700">Send New Notification</button></Link>
       </div>

@@ -121,7 +121,7 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
           <aside className="h-fit space-y-6 lg:sticky lg:top-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="font-bold text-slate-900">Learning placement</h2><p className="mt-1 text-sm text-slate-500">All uploaded questions will use this placement.</p>
-              <Select label="Learning path" value={form.placementType} onChange={(value) => setForm({ ...form, placementType: value })} options={[{ value: "games", label: "CEDUGAMES" }, { value: "learn", label: "CEDU-LEARN" }]}/>
+              <Select label="Learning path" value={form.placementType} onChange={(value) => setForm({ ...form, placementType: value })} options={[{ value: "games", label: "CEDU" }, { value: "learn", label: "CEDU-LEARN" }]}/>
               {form.placementType === "games" ? <>
                 <Select label="Age group" value={form.ageGroupId} onChange={(value) => setForm({ ...form, ageGroupId: value, categoryId: "", levelId: "" })} options={ageGroups.map((item) => ({ value: item.id, label: `${item.name} (${item.min_age}-${item.max_age})` }))} placeholder="Select age group"/>
                 <Select label="Category" value={form.categoryId} disabled={!form.ageGroupId} onChange={(value) => setForm({ ...form, categoryId: value, levelId: "" })} options={categories.map((item) => ({ value: item.id, label: item.name }))} placeholder="Select category"/>
