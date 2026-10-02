@@ -3,7 +3,7 @@ import React from "react";
 const Table = ({ columns, data, rowKey = "id" }) => {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full bg-white border border-[#DBDEE5] rounded-xl shadow-sm min-h-[360px]">
+      <table className="min-h-[360px] w-full min-w-[760px] rounded-xl border border-[#DBDEE5] bg-white shadow-sm">
         <thead>
           <tr className="border-b border-gray-300">
             {columns.map((col) => (

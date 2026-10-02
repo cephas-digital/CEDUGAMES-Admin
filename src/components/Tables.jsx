@@ -32,7 +32,8 @@ export function Table({ user }) {
 // Category of Table Component from lesson page
 export function TableCategory({ categories }) {
   return (
-    <table className="min-w-full bg-white mt-10">
+    <div className="mt-10 overflow-x-auto">
+    <table className="w-full min-w-[640px] bg-white">
       <thead>
         <tr>
           <th className="py-2 px-4 bg-purple-100 text-left text-[#400167] text-[16px] font-semibold">
@@ -61,6 +62,7 @@ export function TableCategory({ categories }) {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -78,7 +80,8 @@ export const TableClassroom = ({
   );
 
   return (
-    <table className="min-w-full bg-white">
+    <div className="overflow-x-auto">
+    <table className="w-full min-w-[640px] bg-white">
       <thead>
         <tr>
           <th className="text-left py-3 px-2 uppercase font-semibold text-sm">
@@ -104,6 +107,7 @@ export const TableClassroom = ({
         ))}
       </tbody>
     </table>
+    </div>
   );
 };
 
