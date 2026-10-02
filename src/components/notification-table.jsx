@@ -61,8 +61,8 @@ export default function NotificationTable() {
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-[#9B5DE5] overflow-hidden">
-      <table className="w-full min-h-[711px] text-left text-base">
+    <div className="overflow-x-auto rounded-xl border border-[#9B5DE5] bg-white">
+      <table className="min-h-[711px] w-full min-w-[760px] text-left text-base">
         <thead className="bg-purple-50">
           <tr className="text-gray-700">
             <th className="p-4 font-medium">Summary</th>

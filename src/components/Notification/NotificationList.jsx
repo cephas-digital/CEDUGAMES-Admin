@@ -3,7 +3,8 @@ import NotificationDetail from "./NotificationDetail";
 
 export default function NotificationList({ notifications }) {
   return (
-    <table className="w-full font-satoshi">
+    <div className="overflow-x-auto">
+    <table className="w-full min-w-[680px] font-satoshi">
       <thead className=" text-[#400167] text-left">
         <tr>
           <th className="py-2">Title</th>
@@ -33,5 +34,6 @@ export default function NotificationList({ notifications }) {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
