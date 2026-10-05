@@ -34,6 +34,7 @@ import SettingsSection from "./pages/settings/[id]";
 import Admins from "./pages/admins";
 import LogOut from "./pages/log-out";
 import Resources from "./pages/resources";
+import FamilyPageContent from "./pages/family-page";
 
 // Keeping routed pages in the main bundle prevents stale lazy chunks from
 // blanking the Admin shell after deployment or Back/Forward navigation.
@@ -43,6 +44,7 @@ const pages = {
   "user-management/manage-user": ManageUser,
   content: Content,
   resources: Resources,
+  "family-page": FamilyPageContent,
   "content/add-question": AddQuestion,
   "content/edit-question": EditQuestion,
   "content/upload-files": UploadFiles,

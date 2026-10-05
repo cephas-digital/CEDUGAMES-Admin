@@ -53,7 +53,7 @@ export const canAccess = (user, page) => {
   if (!user) return false;
   if (user.role === "Super Admin" || user.permissions?.includes("*")) return true;
   if (page === "log-out") return true;
-  const permission = page === "resources" ? "content" : page;
+  const permission = ["resources", "family-page"].includes(page) ? "content" : page;
   return user.permissions?.includes(permission) || false;
 };
 
