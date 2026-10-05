@@ -36,6 +36,7 @@ const Sidebar = ({ children, onSelectPage }) => {
       { to: "/airtime", label: "Airtime", icon: <FaMobileAlt /> },
     ] },
     { id: "administration", label: "Administration", icon: <FaCog />, children: [
+      { to: "/family-page", label: "Family Page", icon: <FaImages />, page: "content" },
       { to: "/settings", label: "Settings", icon: <FaCog /> },
       { to: "/admins", label: "Admins", icon: <FaUsers />, page: "admins" },
     ] },
