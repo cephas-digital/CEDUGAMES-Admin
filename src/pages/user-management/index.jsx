@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+  const [userTotals, setUserTotals] = useState({ totalUsers: 0, newToday: 0, verifiedUsers: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -15,7 +16,14 @@ const UserManagement = () => {
     const loadUsers = async () => {
       try {
         const { data } = await axios.get("/auth/admin/users");
-        if (active) setUsers(data?.users || []);
+        if (active) {
+          setUsers(data?.users || []);
+          setUserTotals({
+            totalUsers: Number(data?.totalUsers ?? data?.users?.length ?? 0),
+            newToday: Number(data?.newToday ?? 0),
+            verifiedUsers: Number(data?.verifiedUsers ?? 0),
+          });
+        }
       } catch (requestError) {
         if (active) setError(requestError?.response?.data?.message || "Unable to load registered users.");
       } finally {
@@ -27,17 +35,14 @@ const UserManagement = () => {
   }, []);
 
   const stats = useMemo(() => {
-    const today = new Date().toDateString();
-    const registeredToday = users.filter((user) => new Date(user.created_at).toDateString() === today).length;
-    const verified = users.filter((user) => user.is_verified).length;
     const coins = users.reduce((total, user) => total + Number(user.household_coins_count ?? user.coins_count ?? 0), 0);
     return [
-      { title: "Total Users", value: users.length.toLocaleString(), icon: <Users className="w-6 h-6 text-purple-600" />, change: "Registered players", gradient: "from-purple-500 to-blue-500" },
-      { title: "New Today", value: registeredToday.toLocaleString(), icon: <UserPlus className="w-6 h-6 text-purple-500" />, change: "Today's registrations", gradient: "from-purple-400 to-pink-400" },
-      { title: "Verified Users", value: verified.toLocaleString(), icon: <ShieldCheck className="w-6 h-6 text-green-600" />, change: `${users.length ? Math.round((verified / users.length) * 100) : 0}% of users`, gradient: "from-green-500 to-emerald-400" },
+      { title: "Total Users", value: userTotals.totalUsers.toLocaleString(), icon: <Users className="w-6 h-6 text-purple-600" />, change: "Accounts and child profiles", gradient: "from-purple-500 to-blue-500" },
+      { title: "New Today", value: userTotals.newToday.toLocaleString(), icon: <UserPlus className="w-6 h-6 text-purple-500" />, change: "Today's registrations", gradient: "from-purple-400 to-pink-400" },
+      { title: "Verified Users", value: userTotals.verifiedUsers.toLocaleString(), icon: <ShieldCheck className="w-6 h-6 text-green-600" />, change: `${userTotals.totalUsers ? Math.round((userTotals.verifiedUsers / userTotals.totalUsers) * 100) : 0}% of users`, gradient: "from-green-500 to-emerald-400" },
       { title: "Player Coins", value: coins.toLocaleString(), icon: <Coins className="w-6 h-6 text-yellow-500" />, change: "Current total balance", gradient: "from-yellow-500 to-orange-400" },
     ];
-  }, [users]);
+  }, [users, userTotals]);
 
   const columns = [
     {
