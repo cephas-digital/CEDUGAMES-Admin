@@ -13,6 +13,7 @@ export const PERMISSIONS = [
   { key: "notifications", label: "Notifications" },
   { key: "settings", label: "Settings" },
   { key: "admins", label: "Admin Management" },
+  { key: "institutions", label: "Institutions" },
 ];
 
 const SUPER_ADMIN = {
