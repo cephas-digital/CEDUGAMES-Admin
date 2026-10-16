@@ -81,7 +81,12 @@ export default function PageRender() {
   const { page, id } = useParams();
 
   const routeKey = id ? `${page}/${id}` : page;
-  const Component = pages[routeKey] || (page === "settings" && id ? SettingsSection : null);
+  // Some pages use the second URL segment as data (for example
+  // /institutions/:id), while others use it to select a nested page
+  // (for example /user-management/manage-user). Prefer the explicit nested
+  // route, then fall back to the base page so data-driven detail routes render
+  // inside their owning page instead of redirecting to the dashboard.
+  const Component = pages[routeKey] || pages[page] || (page === "settings" && id ? SettingsSection : null);
 
   if (!Component) return <Navigate to="/dashboard" replace />;
   return <Component />;
