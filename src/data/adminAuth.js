@@ -71,3 +71,5 @@ export const getSessionUser = () => {
     return null;
   }
 };
+
+export const isSuperAdmin = (user) => user?.role === "Super Admin" && user?.id === "super-admin";
