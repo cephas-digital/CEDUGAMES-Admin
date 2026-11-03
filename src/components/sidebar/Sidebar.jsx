@@ -32,10 +32,12 @@ const Sidebar = ({ children, onSelectPage }) => {
     ] },
     { id: "rewards", label: "Rewards & Wallet", icon: <FaGift />, children: [
       { to: "/coin-system", label: "Coin System", icon: <FaSchool /> },
+      { to: "/referrals", label: "Referral Program", icon: <FaUsers /> },
       { to: "/daily-rewards", label: "Daily Rewards", icon: <FaGift /> },
       { to: "/airtime", label: "Airtime", icon: <FaMobileAlt /> },
     ] },
     { id: "administration", label: "Administration", icon: <FaCog />, children: [
+      { to: "/institutions", label: "Institutions", icon: <FaSchool /> },
       { to: "/family-page", label: "Family Page", icon: <FaImages />, page: "content" },
       { to: "/settings", label: "Settings", icon: <FaCog /> },
       { to: "/admins", label: "Admins", icon: <FaUsers />, page: "admins" },
@@ -70,7 +72,7 @@ const Sidebar = ({ children, onSelectPage }) => {
           }`}
         >
           <button
-            className="md:hidden relative right-20 block  text-2xl text-white"
+            className="ml-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg text-2xl text-white hover:bg-white/15 md:hidden"
             onClick={() => setIsOpen(!isOpen)}
           >
             X

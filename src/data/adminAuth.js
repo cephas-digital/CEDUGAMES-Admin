@@ -7,12 +7,14 @@ export const PERMISSIONS = [
   { key: "content", label: "Content" },
   { key: "leaderboard", label: "Leaderboard" },
   { key: "coin-system", label: "Coin System" },
+  { key: "referrals", label: "Referral Program" },
   { key: "airtime", label: "Airtime Redemptions" },
   { key: "daily-rewards", label: "Daily Rewards" },
   { key: "categories", label: "Categories / Levels" },
   { key: "notifications", label: "Notifications" },
   { key: "settings", label: "Settings" },
   { key: "admins", label: "Admin Management" },
+  { key: "institutions", label: "Institutions" },
 ];
 
 const SUPER_ADMIN = {
@@ -70,3 +72,5 @@ export const getSessionUser = () => {
     return null;
   }
 };
+
+export const isSuperAdmin = (user) => user?.role === "Super Admin" && user?.id === "super-admin";

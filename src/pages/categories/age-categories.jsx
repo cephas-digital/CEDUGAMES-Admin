@@ -14,6 +14,7 @@ import {
   removeCatalogImage,
   uploadCatalogImage,
 } from "../../data/media";
+import { getSessionUser, isSuperAdmin } from "../../data/adminAuth";
 
 const emptyForm = {
   name: "",
@@ -23,6 +24,7 @@ const emptyForm = {
 };
 
 const AgeCategories = () => {
+  const canDelete = isSuperAdmin(getSessionUser());
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const ageGroupId = searchParams.get("ageGroup");
@@ -165,12 +167,12 @@ const AgeCategories = () => {
     }
   };
 
-  const deleteCategory = async () => {
+  const deleteCategory = async (confirmationName) => {
     if (!deleteTarget) return;
     setDeleting(true);
 
     try {
-      await axios.delete(`/admin/catalog/categories/${deleteTarget.id}`);
+      await axios.delete(`/admin/catalog/categories/${deleteTarget.id}`, { data: { confirmationName } });
       await removeCatalogImage(deleteTarget.image_url);
       setDeleteTarget(null);
       invalidateCatalogPrefix("games:age-groups");
@@ -245,9 +247,9 @@ const AgeCategories = () => {
                       <button className="flex items-center gap-1 text-purple-600 hover:text-purple-800" type="button" onClick={() => openEditDialog(category)}>
                         <Pencil size={17} /> Edit
                       </button>
-                      <button className="flex items-center gap-1 text-red-500 hover:text-red-700" type="button" onClick={() => setDeleteTarget(category)}>
+                      {canDelete && <button className="flex items-center gap-1 text-red-500 hover:text-red-700" type="button" onClick={() => setDeleteTarget(category)}>
                         <Trash2 size={17} /> Delete
-                      </button>
+                      </button>}
                       <button
                         className="flex items-center gap-1 text-slate-700 hover:text-purple-700"
                         type="button"
@@ -314,6 +316,7 @@ const AgeCategories = () => {
         onCancel={() => !deleting && setDeleteTarget(null)}
         onConfirm={deleteCategory}
         loading={deleting}
+        confirmationText={deleteTarget?.name}
       />
     </div>
   );
