@@ -32,6 +32,7 @@ const Sidebar = ({ children, onSelectPage }) => {
     ] },
     { id: "rewards", label: "Rewards & Wallet", icon: <FaGift />, children: [
       { to: "/coin-system", label: "Coin System", icon: <FaSchool /> },
+      { to: "/referrals", label: "Referral Program", icon: <FaUsers /> },
       { to: "/daily-rewards", label: "Daily Rewards", icon: <FaGift /> },
       { to: "/airtime", label: "Airtime", icon: <FaMobileAlt /> },
     ] },

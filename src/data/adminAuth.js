@@ -7,6 +7,7 @@ export const PERMISSIONS = [
   { key: "content", label: "Content" },
   { key: "leaderboard", label: "Leaderboard" },
   { key: "coin-system", label: "Coin System" },
+  { key: "referrals", label: "Referral Program" },
   { key: "airtime", label: "Airtime Redemptions" },
   { key: "daily-rewards", label: "Daily Rewards" },
   { key: "categories", label: "Categories / Levels" },

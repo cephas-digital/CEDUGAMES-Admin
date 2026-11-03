@@ -36,6 +36,7 @@ import LogOut from "./pages/log-out";
 import Resources from "./pages/resources";
 import FamilyPageContent from "./pages/family-page";
 import Institutions from "./pages/institutions";
+import Referrals from "./pages/referrals";
 
 // Keeping routed pages in the main bundle prevents stale lazy chunks from
 // blanking the Admin shell after deployment or Back/Forward navigation.
@@ -47,6 +48,7 @@ const pages = {
   resources: Resources,
   "family-page": FamilyPageContent,
   institutions: Institutions,
+  referrals: Referrals,
   "content/add-question": AddQuestion,
   "content/edit-question": EditQuestion,
   "content/upload-files": UploadFiles,
