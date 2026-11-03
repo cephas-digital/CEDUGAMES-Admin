@@ -310,3 +310,15 @@ pre {
 #root *:not(svg):not(path) {
   font-family: "Baloo 2", system-ui, sans-serif !important;
 }
+
+/* Keep fixed-width legacy dialogs usable on short and narrow viewports. */
+@media (max-width: 639px) {
+  .fixed.inset-0.z-50 > div:not([aria-hidden="true"]) {
+    box-sizing: border-box;
+    width: min(calc(100vw - 2rem), 36rem) !important;
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}

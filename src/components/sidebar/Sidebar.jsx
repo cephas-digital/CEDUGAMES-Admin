@@ -72,7 +72,7 @@ const Sidebar = ({ children, onSelectPage }) => {
           }`}
         >
           <button
-            className="md:hidden relative right-20 block  text-2xl text-white"
+            className="ml-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg text-2xl text-white hover:bg-white/15 md:hidden"
             onClick={() => setIsOpen(!isOpen)}
           >
             X
