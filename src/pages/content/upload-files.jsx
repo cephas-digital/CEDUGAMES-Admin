@@ -20,7 +20,7 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
     const [programs, setPrograms] = useState([]);
     const [learnOptions, setLearnOptions] = useState({ section: [], grade: [], subject: [], topic: [], level: [] });
     const initialLearningLevel = params.get("learningLevel") || "";
-    const [form, setForm] = useState({ placementType: initialLearningLevel ? "learn" : "games", ageGroupId: params.get("ageGroup") || "", categoryId: params.get("category") || "", levelId: params.get("level") || "", programId: params.get("program") || "", sectionId: "", gradeId: "", subjectId: "", topicId: "", learningLevelId: initialLearningLevel, status: "published" });
+    const [form, setForm] = useState({ placementType: initialLearningLevel ? "learn" : "games", ageGroupId: params.get("ageGroup") || "", categoryId: params.get("category") || "", levelId: params.get("level") || "", programId: params.get("program") || "", sectionId: "", gradeId: "", subjectId: "", topicId: "", learningLevelId: initialLearningLevel, status: "published", isMagic: false, magicRewardCoins: "100" });
     const [file, setFile] = useState(null), [preview, setPreview] = useState(null), [errors, setErrors] = useState([]), [busy, setBusy] = useState(false);
 
     const downloadTemplate = () => {
@@ -86,7 +86,7 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
       if (!canUpload) return setErrors(["Choose a valid CSV, complete the placement fields, and resolve any row errors."]);
       setBusy(true);
       const body = new FormData();
-      body.append("file", file); body.append("status", form.status);
+      body.append("file", file); body.append("status", form.status); body.append("isMagic", String(form.isMagic)); body.append("magicRewardCoins", form.isMagic ? String(Number(form.magicRewardCoins)) : "0");
       if (form.placementType === "learn") body.append("learningLevelId", form.learningLevelId);
       else { body.append("ageGroupId", form.ageGroupId); body.append("categoryId", form.categoryId); body.append("levelId", form.levelId); }
       try {
@@ -135,6 +135,7 @@ import { invalidateCatalogPrefix } from "../../data/catalog-cache";
                 <Select label="Level" value={form.learningLevelId} disabled={!form.topicId && !initialLearningLevel} onChange={(value) => setForm({ ...form, learningLevelId: value })} options={initialLearningLevel && !learnOptions.level.length ? [{ value: initialLearningLevel, label: "Selected CEDU-LEARN level" }] : learnOptions.level.map(cardOption)} />
               </>}
               <Select label="Publish status" value={form.status} onChange={(value) => setForm({ ...form, status: value })} options={[{ value: "published", label: "Publish immediately" }, { value: "draft", label: "Save as drafts" }]}/>
+              <section className={`mt-5 rounded-xl border p-4 ${form.isMagic ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-slate-50"}`}><label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700"><input type="checkbox" checked={form.isMagic} onChange={(event) => setForm({ ...form, isMagic: event.target.checked })} className="mt-0.5 h-4 w-4 accent-amber-500"/><span><span className="block font-bold">Make all uploaded questions magical</span><span className="mt-1 block text-xs leading-5">This reward applies to every row in the CSV.</span></span></label>{form.isMagic && <label className="mt-4 block text-sm font-semibold text-slate-700">Reward coins per question<input type="number" required min="1" max="1000000" step="1" value={form.magicRewardCoins} onChange={(event) => setForm({ ...form, magicRewardCoins: event.target.value })} className={fieldClass}/></label>}</section>
               {selectedLevel && <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">{selectedLevel.points_per_question} points per question · {selectedLevel.time_limit_seconds} seconds each.</p>}
             </section>
             <section className="rounded-2xl bg-slate-900 p-6 text-white"><h3 className="font-bold">Ready to upload?</h3><p className="mt-1 text-sm leading-6 text-slate-300">The upload is transactional: if any row fails validation, no questions are added.</p><button disabled={busy || !canUpload} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-5 py-3 font-bold disabled:cursor-not-allowed disabled:opacity-50">{busy ? <Loader2 className="animate-spin" size={18}/> : <UploadCloud size={18}/>} {busy ? "Uploading questions..." : "Upload questions"}</button></section>

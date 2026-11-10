@@ -59,6 +59,12 @@ export default function AddQuestion() {
     levelId: searchParams.get("level") || "",
     status: "published",
     readAloud: false,
+    isMagic: false,
+    magicRewardCoins: "100",
+    isPopup: false,
+    popupRewardCoins: "100",
+    popupAudience: "all_users",
+    popupActive: false,
   });
   const [options, setOptions] = useState(EMPTY_OPTIONS);
   const [shapes, setShapes] = useState(EMPTY_SHAPES);
@@ -93,7 +99,7 @@ export default function AddQuestion() {
     if (!editId) return;
     axios.get(`/admin/questions/${editId}`).then(({ data }) => {
       const question = data.question;
-      setForm({ questionText: question.text || "", explanation: question.explanation || "", ageGroupId: question.ageGroupId || "", categoryId: question.categoryId || "", levelId: question.levelId || "", status: question.status, readAloud: Boolean(question.readAloud) });
+      setForm({ questionText: question.text || "", explanation: question.explanation || "", ageGroupId: question.ageGroupId || "", categoryId: question.categoryId || "", levelId: question.levelId || "", status: question.status, readAloud: Boolean(question.readAloud), isMagic: Boolean(question.isMagic), magicRewardCoins: String(question.magicRewardCoins || 100), isPopup: Boolean(question.isPopup), popupRewardCoins: String(question.popupRewardCoins || 100), popupAudience: question.popupAudience || "all_users", popupActive: Boolean(question.popupActive) });
       setOptions(question.options.map((option) => option.text || ""));
       setCorrectAnswer(question.options.findIndex((option) => option.isCorrect));
       setShapes({ question: question.shapeType ? { type: question.shapeType, color: question.shapeColor } : null, ...Object.fromEntries(question.options.map((option, index) => [`option${index}`, option.shapeType ? { type: option.shapeType, color: option.shapeColor } : null])) });
@@ -145,6 +151,8 @@ export default function AddQuestion() {
     const textOptions = options.map((option) => plainText(option).toLowerCase()).filter(Boolean);
     if (new Set(textOptions).size !== textOptions.length) next.options = "Text answer options must be unique.";
     if (correctAnswer === null) next.correctAnswer = "Select the correct answer.";
+    if (form.isPopup && (!Number.isInteger(Number(form.popupRewardCoins)) || Number(form.popupRewardCoins) < 1 || Number(form.popupRewardCoins) > 1000000)) next.popupRewardCoins = "Enter a reward from 1 to 1,000,000 coins.";
+    if (form.isPopup && form.popupActive && form.status !== "published") next.popupActive = "Publish the question before activating its campaign.";
     if (!isLearningQuestion && !form.ageGroupId) next.ageGroupId = "Select an age group.";
     if (!isLearningQuestion && !form.categoryId) next.categoryId = "Select a category.";
     if (!isLearningQuestion && !form.levelId) next.levelId = "Select a level.";
@@ -205,6 +213,12 @@ export default function AddQuestion() {
     else { body.append("ageGroupId", form.ageGroupId); body.append("categoryId", form.categoryId); body.append("levelId", form.levelId); }
     body.append("status", form.status);
     body.append("readAloud", String(form.readAloud));
+    body.append("isMagic", String(form.isMagic));
+    body.append("magicRewardCoins", form.isMagic ? String(Number(form.magicRewardCoins)) : "0");
+    body.append("isPopup", String(form.isPopup));
+    body.append("popupRewardCoins", form.isPopup ? String(Number(form.popupRewardCoins)) : "0");
+    body.append("popupAudience", form.popupAudience);
+    body.append("popupActive", String(form.isPopup && form.popupActive));
     body.append("shape", JSON.stringify(shapes.question));
     body.append("options", JSON.stringify(options.map((text, index) => ({ text, isCorrect: index === correctAnswer, mediaType: attachments[`option${index}`]?.type || null, mediaUrl: attachments[`option${index}`]?.resourceId ? attachments[`option${index}`].url : null, shape: shapes[`option${index}`] }))));
     if (attachments.question?.file) body.append("questionMedia", attachments.question.file, attachments.question.file.name);
@@ -242,7 +256,7 @@ export default function AddQuestion() {
           </div>
           <div className="grid gap-4 bg-white p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <label className="text-sm font-bold text-slate-700">What should this question cover? <span className="font-normal text-slate-400">(optional guidance)</span><textarea rows="2" maxLength="2000" value={aiGuidance} onChange={(event) => setAiGuidance(event.target.value)} placeholder="Example: Test adding two-digit numbers without carrying, using a friendly playground scenario." className={`${fieldClass} resize-none`}/></label>
-            <button type="button" disabled={generating} onClick={generateWithAi} className="flex h-fit items-center justify-center gap-2 rounded-xl bg-purple-600 px-6 py-3.5 font-black text-white transition hover:bg-purple-700 disabled:opacity-50">{generating ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>} {generating ? "Generating…" : "Generate question"}</button>
+            <button type="button" disabled={generating} onClick={generateWithAi} className="flex h-fit items-center justify-center gap-2 rounded-xl bg-purple-600 px-6 py-3.5 font-black text-white transition hover:bg-purple-700 disabled:opacity-50">{generating ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>} {generating ? "Generating..." : "Generate question"}</button>
           </div>
           {(!form.ageGroupId || !form.categoryId || !form.levelId) && <p className="border-t bg-amber-50 px-5 py-3 text-xs font-semibold text-amber-700">Complete the Age group, Category, and Level fields below before generating.</p>}
         </section>}
@@ -268,6 +282,26 @@ export default function AddQuestion() {
                 <input type="checkbox" checked={form.readAloud} onChange={(event) => update("readAloud", event.target.checked)} className="mt-0.5 h-4 w-4 accent-purple-600" />
                 <span><span className="block font-bold text-slate-800">Read question and answers aloud</span><span className="mt-1 block text-xs leading-5 text-slate-500">Learners will get a play button for the question and all four answer choices.</span></span>
               </label>
+
+              <section className={`mt-4 rounded-xl border p-4 ${form.isMagic ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-slate-50"}`}>
+                <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
+                  <input type="checkbox" checked={form.isMagic} onChange={(event) => { update("isMagic", event.target.checked); if (!event.target.checked) update("magicRewardCoins", "100"); }} className="mt-0.5 h-4 w-4 accent-amber-500" />
+                  <span><span className="block font-bold text-slate-900">Make this a Magic Question</span><span className="mt-1 block text-xs leading-5 text-slate-600">It stays in the regular question shuffle. Each player gets one answer attempt. A correct answer earns the bonus coins once; help options are disabled.</span></span>
+                </label>
+                {form.isMagic && <label className="mt-4 block max-w-xs text-sm font-semibold text-slate-700">Reward coins<input required type="number" min="1" max="1000000" step="1" value={form.magicRewardCoins} onChange={(event) => update("magicRewardCoins", event.target.value)} className={fieldClass}/><span className="mt-1 block text-xs font-normal text-slate-500">Between 1 and 1,000,000 coins, awarded once per player for this question.</span></label>}
+              </section>
+
+              <section className={`mt-4 rounded-xl border p-4 ${form.isPopup ? "border-sky-300 bg-sky-50" : "border-slate-200 bg-slate-50"}`}>
+                <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
+                  <input type="checkbox" checked={form.isPopup} onChange={(event) => { update("isPopup", event.target.checked); if (!event.target.checked) update("popupActive", false); }} className="mt-0.5 h-4 w-4 accent-sky-600" />
+                  <span><span className="block font-bold text-slate-900">Use as promotional pop-up question</span><span className="mt-1 block text-xs leading-5 text-slate-600">Show this question after login to the selected audience. Each player can answer once per activation.</span></span>
+                </label>
+                {form.isPopup && <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <label className="text-sm font-semibold text-slate-700">Reward coins<input required type="number" min="1" max="1000000" step="1" value={form.popupRewardCoins} onChange={(event) => update("popupRewardCoins", event.target.value)} className={fieldClass}/><span className="mt-1 block text-xs font-normal text-slate-500">Paid only after a correct answer.</span>{errors.popupRewardCoins && <span className="text-xs text-red-600">{errors.popupRewardCoins}</span>}</label>
+                  <label className="text-sm font-semibold text-slate-700">Audience<select value={form.popupAudience} onChange={(event) => update("popupAudience", event.target.value)} className={fieldClass}><option value="all_users">All Users</option><option value="new_users">New Users Only</option></select><span className="mt-1 block text-xs font-normal text-slate-500">New users are accounts registered on or after campaign activation.</span></label>
+                  <label className="flex items-start gap-3 rounded-xl border border-sky-200 bg-white p-3 text-sm sm:col-span-2"><input type="checkbox" checked={form.popupActive} disabled={form.status !== "published"} onChange={(event) => update("popupActive", event.target.checked)} className="mt-0.5 h-4 w-4 accent-sky-600"/><span><span className="font-bold">Activate campaign</span><span className="block text-xs text-slate-500">{form.status === "published" ? "Eligible players will see it the next time they log in." : "Publish this question to activate its campaign."}</span>{errors.popupActive && <span className="text-xs text-red-600">{errors.popupActive}</span>}</span></label>
+                </div>}
+              </section>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {options.map((option, index) => (
@@ -301,7 +335,7 @@ export default function AddQuestion() {
               <div className="flex items-center justify-between"><h2 className="font-bold text-slate-900">Question status</h2><span className="text-xs font-bold text-purple-600">{completeness}% complete</span></div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-purple-600 transition-all" style={{ width: `${completeness}%` }} /></div>
               <div className="mt-6 space-y-5">
-                <SelectField label="Publish status" value={form.status} onChange={(value) => update("status", value)} options={[{ value: "published", label: "Publish immediately" }, { value: "draft", label: "Save as draft" }]} />
+                <SelectField label="Publish status" value={form.status} onChange={(value) => { update("status", value); if (value === "draft") update("popupActive", false); }} options={[{ value: "published", label: "Publish immediately" }, { value: "draft", label: "Save as draft" }]} />
                 <p className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">Difficulty, points, and time limits are inherited from the selected level.</p>
               </div>
             </section>
