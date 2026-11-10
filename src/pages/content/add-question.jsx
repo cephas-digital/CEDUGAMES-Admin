@@ -246,7 +246,7 @@ export default function AddQuestion() {
           </div>
           <div className="grid gap-4 bg-white p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <label className="text-sm font-bold text-slate-700">What should this question cover? <span className="font-normal text-slate-400">(optional guidance)</span><textarea rows="2" maxLength="2000" value={aiGuidance} onChange={(event) => setAiGuidance(event.target.value)} placeholder="Example: Test adding two-digit numbers without carrying, using a friendly playground scenario." className={`${fieldClass} resize-none`}/></label>
-            <button type="button" disabled={generating} onClick={generateWithAi} className="flex h-fit items-center justify-center gap-2 rounded-xl bg-purple-600 px-6 py-3.5 font-black text-white transition hover:bg-purple-700 disabled:opacity-50">{generating ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>} {generating ? "Generatingâ€¦" : "Generate question"}</button>
+            <button type="button" disabled={generating} onClick={generateWithAi} className="flex h-fit items-center justify-center gap-2 rounded-xl bg-purple-600 px-6 py-3.5 font-black text-white transition hover:bg-purple-700 disabled:opacity-50">{generating ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>} {generating ? "Generating..." : "Generate question"}</button>
           </div>
           {(!form.ageGroupId || !form.categoryId || !form.levelId) && <p className="border-t bg-amber-50 px-5 py-3 text-xs font-semibold text-amber-700">Complete the Age group, Category, and Level fields below before generating.</p>}
         </section>}
@@ -276,7 +276,7 @@ export default function AddQuestion() {
               <section className={`mt-4 rounded-xl border p-4 ${form.isMagic ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-slate-50"}`}>
                 <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
                   <input type="checkbox" checked={form.isMagic} onChange={(event) => { update("isMagic", event.target.checked); if (!event.target.checked) update("magicRewardCoins", "100"); }} className="mt-0.5 h-4 w-4 accent-amber-500" />
-                  <span><span className="block font-bold text-slate-900">âœ¨ Make this a Magic Question</span><span className="mt-1 block text-xs leading-5 text-slate-600">It stays in the regular question shuffle. Each player gets one answer attempt. A correct answer earns the bonus coins once; help options are disabled.</span></span>
+                  <span><span className="block font-bold text-slate-900">Make this a Magic Question</span><span className="mt-1 block text-xs leading-5 text-slate-600">It stays in the regular question shuffle. Each player gets one answer attempt. A correct answer earns the bonus coins once; help options are disabled.</span></span>
                 </label>
                 {form.isMagic && <label className="mt-4 block max-w-xs text-sm font-semibold text-slate-700">Reward coins<input required type="number" min="1" max="1000000" step="1" value={form.magicRewardCoins} onChange={(event) => update("magicRewardCoins", event.target.value)} className={fieldClass}/><span className="mt-1 block text-xs font-normal text-slate-500">Between 1 and 1,000,000 coins, awarded once per player for this question.</span></label>}
               </section>
@@ -349,7 +349,7 @@ function AttachmentPreview({ attachment, onRemove, compact = false }) {
   const TypeIcon = MEDIA_TYPES.find((type) => type.id === attachment.type)?.icon || Paperclip;
   return <div className={`mt-3 flex items-center gap-3 rounded-xl border border-purple-100 bg-purple-50/60 ${compact ? "p-2" : "p-3"}`}>
     {attachment.type === "image" ? <img src={attachment.preview} alt="Attached preview" className={`${compact ? "h-10 w-10" : "h-14 w-14"} rounded-lg object-cover`} /> : <span className={`flex ${compact ? "h-10 w-10" : "h-14 w-14"} shrink-0 items-center justify-center rounded-lg bg-white text-purple-600`}><TypeIcon size={20} /></span>}
-    <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-700">{attachment.file?.name || attachment.name || "Existing attachment"}</p><p className="mt-0.5 text-xs capitalize text-slate-400">{attachment.type}{attachment.file ? ` Â· ${(attachment.file.size / 1024 / 1024).toFixed(2)} MB` : " Â· Saved media"}</p></div>
+    <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-700">{attachment.file?.name || attachment.name || "Existing attachment"}</p><p className="mt-0.5 text-xs capitalize text-slate-400">{attachment.type}{attachment.file ? ` · ${(attachment.file.size / 1024 / 1024).toFixed(2)} MB` : " · Saved media"}</p></div>
     <button type="button" onClick={onRemove} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label="Remove attachment"><Trash2 size={16} /></button>
   </div>;
 }
