@@ -22,6 +22,8 @@ const Login = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -55,6 +57,7 @@ const Login = () => {
         return;
       }
       if (recoveryStep === "reset") {
+        if (newPassword.length < 8 || newPassword.length > 128) throw new Error("Use a password between 8 and 128 characters.");
         if (newPassword !== confirmPassword) throw new Error("Passwords do not match.");
         await axios.post("/auth/reset-password", { newPassword }, { headers: { Authorization: `Bearer ${resetToken}` } });
         setRecoveryStep("login");
@@ -62,6 +65,8 @@ const Login = () => {
         setResetToken("");
         setNewPassword("");
         setConfirmPassword("");
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
         setForm((current) => ({ ...current, password: "" }));
         setNotice("Password reset successfully. Sign in with your new password.");
         return;
@@ -113,7 +118,7 @@ const Login = () => {
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-[#241a30]">{recoveryStep === "login" ? "Admin login" : recoveryStep === "forgot" ? "Forgot password?" : recoveryStep === "verify" ? "Verify your code" : "Set a new password"}</h1>
           <p className="mt-2 text-sm text-slate-500">
-            {recoveryStep === "login" ? "Enter your credentials to access the admin dashboard." : recoveryStep === "forgot" ? "Enter your managed administrator email to receive a six-digit recovery code." : recoveryStep === "verify" ? `Enter the six-digit code sent to ${form.email}. It expires in 15 minutes.` : "Choose a new password with at least 10 characters."}
+            {recoveryStep === "login" ? "Enter your credentials to access the admin dashboard." : recoveryStep === "forgot" ? "Enter your managed administrator email to receive a six-digit recovery code." : recoveryStep === "verify" ? `Enter the six-digit code sent to ${form.email}. It expires in 15 minutes.` : "Choose a new password with at least 8 characters."}
           </p>
         </div>
 
@@ -171,8 +176,8 @@ const Login = () => {
           </label>}
 
           {recoveryStep === "reset" && <>
-            <label className="block"><span className="mb-2 block text-sm font-semibold text-slate-700">New password</span><input className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100" type="password" autoComplete="new-password" minLength={10} maxLength={128} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /></label>
-            <label className="block"><span className="mb-2 block text-sm font-semibold text-slate-700">Confirm new password</span><input className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100" type="password" autoComplete="new-password" minLength={10} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /></label>
+            <label className="block"><span className="mb-2 block text-sm font-semibold text-slate-700">New password</span><span className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-4 transition focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-100"><input className="w-full bg-transparent py-3.5 pr-3 text-sm outline-none" type={showNewPassword ? "text" : "password"} autoComplete="new-password" minLength={8} maxLength={128} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /><button type="button" className="text-slate-400 hover:text-purple-600" onClick={() => setShowNewPassword((visible) => !visible)} aria-label={showNewPassword ? "Hide new password" : "Show new password"} aria-pressed={showNewPassword}>{showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></span></label>
+            <label className="block"><span className="mb-2 block text-sm font-semibold text-slate-700">Confirm new password</span><span className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-4 transition focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-100"><input className="w-full bg-transparent py-3.5 pr-3 text-sm outline-none" type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" minLength={8} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /><button type="button" className="text-slate-400 hover:text-purple-600" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"} aria-pressed={showConfirmPassword}>{showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></span></label>
           </>}
 
           {recoveryStep === "login" && <button type="button" className="-mt-2 block text-sm font-semibold text-purple-700 hover:text-purple-900" onClick={() => { setForm((current) => ({ ...current, password: "" })); setNotice(""); setErrorMessage(""); setRecoveryStep("forgot"); }}>Forgot password?</button>}
@@ -180,7 +185,7 @@ const Login = () => {
           <button
             className="mt-2 w-full rounded-xl bg-gradient-to-r from-[#9B5DE5] to-[#56347F] py-3.5 text-sm font-bold text-white shadow-lg shadow-purple-200 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             type="submit"
-            disabled={loading || (recoveryStep === "verify" && recoveryCode.length !== 6) || (recoveryStep === "reset" && (newPassword.length < 10 || newPassword !== confirmPassword))}
+            disabled={loading || (recoveryStep === "verify" && recoveryCode.length !== 6) || (recoveryStep === "reset" && (newPassword.length < 8 || newPassword.length > 128 || newPassword !== confirmPassword))}
           >
             {loading ? "Please wait..." : recoveryStep === "login" ? "Sign in" : recoveryStep === "forgot" ? "Send recovery code" : recoveryStep === "verify" ? "Verify code" : "Reset password"}
           </button>
@@ -188,7 +193,7 @@ const Login = () => {
         {recoveryStep === "verify" && <button type="button" disabled={loading || resendCooldown > 0} onClick={resendCode} className="mt-4 text-sm font-semibold text-purple-700 disabled:cursor-not-allowed disabled:text-slate-400">{resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}</button>}
         {recoveryStep !== "login" && <>
           {recoveryStep === "forgot" && <p className="mt-5 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">The Super Admin password is managed through backend deployment settings. This email recovery flow is for dashboard administrator accounts.</p>}
-          <button type="button" className="mt-4 block text-sm font-semibold text-purple-700 hover:text-purple-900" onClick={() => { setRecoveryStep("login"); setResetToken(""); setRecoveryCode(""); setNewPassword(""); setConfirmPassword(""); setResendCooldown(0); setNotice(""); setErrorMessage(""); }}>Back to admin login</button>
+          <button type="button" className="mt-4 block text-sm font-semibold text-purple-700 hover:text-purple-900" onClick={() => { setRecoveryStep("login"); setResetToken(""); setRecoveryCode(""); setNewPassword(""); setConfirmPassword(""); setShowNewPassword(false); setShowConfirmPassword(false); setResendCooldown(0); setNotice(""); setErrorMessage(""); }}>Back to admin login</button>
         </>}
       </section>
     </main>
