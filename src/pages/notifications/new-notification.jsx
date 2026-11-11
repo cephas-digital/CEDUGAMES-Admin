@@ -14,7 +14,7 @@ export default function NewNotificationForm() {
   const [selected, setSelected] = useState([]);
   const [search, setSearch] = useState("");
   const [sending, setSending] = useState(false);
-  useEffect(() => { axios.get("/admin/users").then(({ data }) => setUsers(data.users || [])).catch(() => toast.error("Unable to load players for targeting.")); }, []);
+  useEffect(() => { axios.get("/auth/admin/users").then(({ data }) => setUsers(data.users || [])).catch(() => toast.error("Unable to load players for targeting.")); }, []);
   const filtered = useMemo(() => users.filter(user => `${user.name} ${user.email}`.toLowerCase().includes(search.toLowerCase())), [users, search]);
   const update = event => setForm(value => ({ ...value, [event.target.name]: event.target.value }));
   const toggleUser = id => setSelected(ids => ids.includes(id) ? ids.filter(item => item !== id) : [...ids, id]);
