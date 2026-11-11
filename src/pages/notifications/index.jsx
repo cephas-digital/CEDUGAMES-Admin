@@ -124,7 +124,7 @@ export default function NotificationsPage() {
                     <td className="capitalize">{(item.channels || ["in_app", "push"]).map(channel => channel === "in_app" ? "In-app" : channel).join(", ")}</td>
                     <td>{new Date(item.scheduled_at || item.published_at).toLocaleString()}</td>
                     <td title={item.email_error || ""}><span className="rounded-full bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">{status(item.email_status || "not_requested")}</span>{item.email_status && item.email_status !== "not_requested" && <div className="mt-1 text-xs text-slate-400">{item.email_success_count || 0} ok · {item.email_failure_count || 0} failed</div>}</td>
-                    <td title={item.push_error || ""}><span className="rounded-full bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700">{status(item.push_status)}</span></td>
+                    <td title={item.push_error || ""}><span className={`rounded-full px-2 py-1 text-xs font-semibold ${item.push_status === "failed" ? "bg-red-50 text-red-700" : item.push_status === "partial" ? "bg-amber-50 text-amber-700" : "bg-purple-50 text-purple-700"}`}>{status(item.push_status)}</span>{item.push_error && <p className="mt-1 max-w-[220px] break-words text-xs leading-4 text-red-600">{item.push_error}</p>}</td>
                     <td title={item.push_error || ""}>{item.channels?.includes("push") ? `${item.push_success_count || 0} ok · ${item.push_failure_count || 0} failed` : "—"}</td>
                   </tr>;
                 })}</tbody>
