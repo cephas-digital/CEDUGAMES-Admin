@@ -18,6 +18,7 @@ export default function NotificationsPage() {
   const [retentionEditable, setRetentionEditable] = useState(false);
   const [retentionLoading, setRetentionLoading] = useState(true);
   const [retentionSaving, setRetentionSaving] = useState(false);
+  const [campaigns, setCampaigns] = useState([]);
 
   const loadActivities = async (page) => {
     setLoading(true); setError("");
@@ -43,6 +44,11 @@ export default function NotificationsPage() {
     } finally { setRetentionLoading(false); }
   };
 
+  const loadCampaigns = async () => {
+    try { const { data } = await axios.get("/admin/notifications?limit=20&page=1"); setCampaigns(data?.notifications || []); }
+    catch (_) { /* Activity history remains available if the campaign list cannot load. */ }
+  };
+
   const saveRetention = async () => {
     setRetentionSaving(true);
     try {
@@ -55,7 +61,7 @@ export default function NotificationsPage() {
     } finally { setRetentionSaving(false); }
   };
 
-  useEffect(() => { loadActivities(1); loadRetention(); }, []);
+  useEffect(() => { loadActivities(1); loadRetention(); loadCampaigns(); }, []);
 
   return (
     <div className="w-full max-w-7xl p-3 text-gray-900 sm:p-5 lg:p-6">
@@ -68,6 +74,7 @@ export default function NotificationsPage() {
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-6 py-5"><h2 className="text-lg font-bold">Push campaigns</h2><p className="text-xs text-slate-400">Recent sent and scheduled player notifications</p>{campaigns.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="text-xs uppercase text-slate-400"><tr><th className="py-2">Message</th><th>Audience</th><th>Scheduled / sent</th><th>Push status</th><th>Devices reached</th></tr></thead><tbody>{campaigns.map(item => { const status = item.push_status === "pending" && item.scheduled_at && new Date(item.scheduled_at) > new Date() ? "scheduled" : item.push_status; return <tr key={item.id} className="border-t border-slate-100"><td className="py-3"><b>{item.title}</b><div className="max-w-sm truncate text-xs text-slate-500">{item.message}</div></td><td>{item.target_user_ids?.length ? `${item.target_user_ids.length} selected` : item.audience}</td><td>{new Date(item.scheduled_at || item.published_at).toLocaleString()}</td><td title={item.push_error || ""}><span className="rounded-full bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700">{status}</span></td><td>{item.push_success_count || 0} ok · {item.push_failure_count || 0} failed</td></tr>; })}</tbody></table></div> : <p className="mt-3 text-sm text-slate-400">No push campaigns yet.</p>}</div>
         <div className="flex flex-col gap-5 border-b border-slate-100 px-6 py-5 xl:flex-row xl:items-center xl:justify-between">
           <div><h2 className="text-lg font-bold">All Activities</h2><p className="text-xs text-slate-400">{pagination.total} recorded event{pagination.total === 1 ? "" : "s"}</p></div>
           <div className="flex flex-col gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-4 sm:flex-row sm:items-center sm:justify-between xl:min-w-[600px]">
