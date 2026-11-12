@@ -63,6 +63,7 @@ export default function AddQuestion() {
     magicRewardCoins: "100",
     isPopup: false,
     popupRewardCoins: "100",
+    popupMaxParticipants: "",
     popupAudience: "all_users",
     popupActive: false,
   });
@@ -99,7 +100,7 @@ export default function AddQuestion() {
     if (!editId) return;
     axios.get(`/admin/questions/${editId}`).then(({ data }) => {
       const question = data.question;
-      setForm({ questionText: question.text || "", explanation: question.explanation || "", ageGroupId: question.ageGroupId || "", categoryId: question.categoryId || "", levelId: question.levelId || "", status: question.status, readAloud: Boolean(question.readAloud), isMagic: Boolean(question.isMagic), magicRewardCoins: String(question.magicRewardCoins || 100), isPopup: Boolean(question.isPopup), popupRewardCoins: String(question.popupRewardCoins || 100), popupAudience: question.popupAudience || "all_users", popupActive: Boolean(question.popupActive) });
+      setForm({ questionText: question.text || "", explanation: question.explanation || "", ageGroupId: question.ageGroupId || "", categoryId: question.categoryId || "", levelId: question.levelId || "", status: question.status, readAloud: Boolean(question.readAloud), isMagic: Boolean(question.isMagic), magicRewardCoins: String(question.magicRewardCoins || 100), isPopup: Boolean(question.isPopup), popupRewardCoins: String(question.popupRewardCoins || 100), popupMaxParticipants: question.popupMaxParticipants ? String(question.popupMaxParticipants) : "", popupAudience: question.popupAudience || "all_users", popupActive: Boolean(question.popupActive) });
       setOptions(question.options.map((option) => option.text || ""));
       setCorrectAnswer(question.options.findIndex((option) => option.isCorrect));
       setShapes({ question: question.shapeType ? { type: question.shapeType, color: question.shapeColor } : null, ...Object.fromEntries(question.options.map((option, index) => [`option${index}`, option.shapeType ? { type: option.shapeType, color: option.shapeColor } : null])) });
@@ -152,6 +153,7 @@ export default function AddQuestion() {
     if (new Set(textOptions).size !== textOptions.length) next.options = "Text answer options must be unique.";
     if (correctAnswer === null) next.correctAnswer = "Select the correct answer.";
     if (form.isPopup && (!Number.isInteger(Number(form.popupRewardCoins)) || Number(form.popupRewardCoins) < 1 || Number(form.popupRewardCoins) > 1000000)) next.popupRewardCoins = "Enter a reward from 1 to 1,000,000 coins.";
+    if (form.isPopup && form.popupMaxParticipants && (!Number.isInteger(Number(form.popupMaxParticipants)) || Number(form.popupMaxParticipants) < 1 || Number(form.popupMaxParticipants) > 10000000)) next.popupMaxParticipants = "Enter a whole number from 1 to 10,000,000, or leave empty for no limit.";
     if (form.isPopup && form.popupActive && form.status !== "published") next.popupActive = "Publish the question before activating its campaign.";
     if (!isLearningQuestion && !form.ageGroupId) next.ageGroupId = "Select an age group.";
     if (!isLearningQuestion && !form.categoryId) next.categoryId = "Select a category.";
@@ -217,6 +219,7 @@ export default function AddQuestion() {
     body.append("magicRewardCoins", form.isMagic ? String(Number(form.magicRewardCoins)) : "0");
     body.append("isPopup", String(form.isPopup));
     body.append("popupRewardCoins", form.isPopup ? String(Number(form.popupRewardCoins)) : "0");
+    body.append("popupMaxParticipants", form.isPopup ? form.popupMaxParticipants : "");
     body.append("popupAudience", form.popupAudience);
     body.append("popupActive", String(form.isPopup && form.popupActive));
     body.append("shape", JSON.stringify(shapes.question));
@@ -299,6 +302,7 @@ export default function AddQuestion() {
                 {form.isPopup && <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <label className="text-sm font-semibold text-slate-700">Reward coins<input required type="number" min="1" max="1000000" step="1" value={form.popupRewardCoins} onChange={(event) => update("popupRewardCoins", event.target.value)} className={fieldClass}/><span className="mt-1 block text-xs font-normal text-slate-500">Paid only after a correct answer.</span>{errors.popupRewardCoins && <span className="text-xs text-red-600">{errors.popupRewardCoins}</span>}</label>
                   <label className="text-sm font-semibold text-slate-700">Audience<select value={form.popupAudience} onChange={(event) => update("popupAudience", event.target.value)} className={fieldClass}><option value="all_users">All Users</option><option value="new_users">New Users Only</option></select><span className="mt-1 block text-xs font-normal text-slate-500">New users are accounts registered on or after campaign activation.</span></label>
+                  <label className="text-sm font-semibold text-slate-700">Maximum participants<input type="number" min="1" max="10000000" step="1" inputMode="numeric" placeholder="No limit" value={form.popupMaxParticipants} onChange={(event) => update("popupMaxParticipants", event.target.value)} className={fieldClass}/><span className="mt-1 block text-xs font-normal text-slate-500">The campaign turns off after this many players submit an answer. Leave empty for no limit.</span>{errors.popupMaxParticipants && <span className="text-xs text-red-600">{errors.popupMaxParticipants}</span>}</label>
                   <label className="flex items-start gap-3 rounded-xl border border-sky-200 bg-white p-3 text-sm sm:col-span-2"><input type="checkbox" checked={form.popupActive} disabled={form.status !== "published"} onChange={(event) => update("popupActive", event.target.checked)} className="mt-0.5 h-4 w-4 accent-sky-600"/><span><span className="font-bold">Activate campaign</span><span className="block text-xs text-slate-500">{form.status === "published" ? "Eligible players will see it the next time they log in." : "Publish this question to activate its campaign."}</span>{errors.popupActive && <span className="text-xs text-red-600">{errors.popupActive}</span>}</span></label>
                 </div>}
               </section>
