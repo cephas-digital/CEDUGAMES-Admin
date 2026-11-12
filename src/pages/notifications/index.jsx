@@ -5,7 +5,8 @@ import { Activity, BellRing, Clock3 } from "lucide-react";
 import { toast } from "react-toastify";
 import ActivityItem from "../../components/activity-item";
 
-const PAGE_SIZE = 12;
+const ACTIVITY_PAGE_SIZE = 12;
+const CAMPAIGN_PAGE_SIZE = 15;
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState("campaigns");
@@ -23,11 +24,12 @@ export default function NotificationsPage() {
   const [retentionSaving, setRetentionSaving] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
   const [campaignLoading, setCampaignLoading] = useState(true);
+  const [campaignPagination, setCampaignPagination] = useState({ page: 1, limit: CAMPAIGN_PAGE_SIZE, totalPages: 1, total: 0 });
 
   const loadActivities = async (page) => {
     setActivityLoading(true); setActivityError("");
     try {
-      const { data } = await axios.get(`/auth/admin/activities?limit=${PAGE_SIZE}&page=${page}`);
+      const { data } = await axios.get(`/auth/admin/activities?limit=${ACTIVITY_PAGE_SIZE}&page=${page}`);
       setActivities(data?.activities || []);
       setPagination(data?.pagination || { page, totalPages: 1, total: 0 });
     } catch (requestError) {
@@ -48,11 +50,12 @@ export default function NotificationsPage() {
     } finally { setRetentionLoading(false); }
   };
 
-  const loadCampaigns = async () => {
+  const loadCampaigns = async (page = 1) => {
     setCampaignLoading(true); setCampaignError("");
     try {
-      const { data } = await axios.get("/admin/notifications?limit=20&page=1");
+      const { data } = await axios.get(`/admin/notifications?limit=${CAMPAIGN_PAGE_SIZE}&page=${page}`);
       setCampaigns(data?.notifications || []);
+      setCampaignPagination(data?.pagination || { page, limit: CAMPAIGN_PAGE_SIZE, totalPages: 1, total: 0 });
     } catch (requestError) {
       setCampaignError(requestError?.response?.data?.message || "Unable to load notification campaigns.");
     } finally { setCampaignLoading(false); }
@@ -64,7 +67,7 @@ export default function NotificationsPage() {
       const { data } = await axios.put("/admin/activity-retention", { retentionDays });
       setSavedRetentionDays(Number(data.retentionDays));
       toast.success(data.message || "Retention setting saved.");
-      await loadActivities(1);
+      await Promise.all([loadActivities(1), loadCampaigns(1)]);
     } catch (requestError) {
       toast.error(requestError?.response?.data?.message || "Unable to save retention setting.");
     } finally { setRetentionSaving(false); }
@@ -73,7 +76,7 @@ export default function NotificationsPage() {
   useEffect(() => { loadActivities(1); loadRetention(); loadCampaigns(); }, []);
 
   const tabs = [
-    { id: "campaigns", label: "Notification campaigns", count: campaigns.length, icon: <BellRing size={17} /> },
+    { id: "campaigns", label: "Notification campaigns", count: campaignPagination.total, icon: <BellRing size={17} /> },
     { id: "activities", label: "Activity history", count: pagination.total, icon: <Activity size={17} /> },
   ];
 
@@ -104,6 +107,12 @@ export default function NotificationsPage() {
         ))}
       </div>
 
+      <div className="mb-5 flex flex-col gap-5 rounded-xl border border-purple-100 bg-purple-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3"><span className="rounded-lg bg-white p-2 text-purple-600"><Clock3 size={17}/></span><div><p className="text-sm font-bold text-slate-800">Activity & notification retention</p><p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">Keep activity and notification campaign records for {retentionDays} days. Older records are removed automatically each day. Extending this period cannot restore records already deleted.</p></div></div>
+        <div className="flex shrink-0 items-center gap-2"><label className="sr-only" htmlFor="activity-retention-days">Retention period</label><select id="activity-retention-days" value={retentionDays} disabled={retentionLoading || !retentionEditable} onChange={event => setRetentionDays(Number(event.target.value))} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60">{retentionOptions.map(days => <option key={days} value={days}>{days} days{days === 15 ? " (default)" : ""}</option>)}</select>{retentionEditable && <button type="button" disabled={retentionLoading || retentionSaving || retentionDays === savedRetentionDays} onClick={saveRetention} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-40">{retentionSaving ? "Saving..." : "Save"}</button>}</div>
+      </div>
+      {retentionError && <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{retentionError}</div>}
+
       {activeTab === "campaigns" ? (
         <section id="campaigns-panel" role="tabpanel" aria-labelledby="campaigns-tab" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4">
@@ -131,17 +140,11 @@ export default function NotificationsPage() {
               </table>
             </div>
           ) : <p className="p-12 text-center text-sm text-slate-400">No notification campaigns yet.</p>}
+          {!campaignLoading && campaignPagination.total > 0 && <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4"><span className="text-sm text-slate-500">Showing {(campaignPagination.page - 1) * campaignPagination.limit + 1}–{Math.min(campaignPagination.page * campaignPagination.limit, campaignPagination.total)} of {campaignPagination.total} campaigns · Page {campaignPagination.page} of {Math.max(campaignPagination.totalPages, 1)}</span><div className="flex gap-2"><button type="button" onClick={() => loadCampaigns(campaignPagination.page - 1)} disabled={campaignLoading || campaignPagination.page <= 1} className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-40">Previous</button><button type="button" onClick={() => loadCampaigns(campaignPagination.page + 1)} disabled={campaignLoading || campaignPagination.page >= campaignPagination.totalPages} className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-40">Next</button></div></div>}
         </section>
       ) : (
         <section id="activities-panel" role="tabpanel" aria-labelledby="activities-tab" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-5 border-b border-slate-100 px-5 py-5 sm:px-6 xl:flex-row xl:items-center xl:justify-between">
-            <div><h2 className="text-lg font-bold">Activity history</h2><p className="text-xs text-slate-400">{pagination.total} recorded event{pagination.total === 1 ? "" : "s"}</p></div>
-            <div className="flex flex-col gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-4 sm:flex-row sm:items-center sm:justify-between xl:min-w-[600px]">
-              <div className="flex items-start gap-3"><span className="rounded-lg bg-white p-2 text-purple-600"><Clock3 size={17}/></span><div><p className="text-sm font-bold text-slate-800">Activity & notification retention</p><p className="mt-1 max-w-md text-xs leading-5 text-slate-500">Keep records for {retentionDays} days. Older activities and sent notifications are removed automatically each day. Extending this period cannot restore records already deleted.</p></div></div>
-              <div className="flex shrink-0 items-center gap-2"><label className="sr-only" htmlFor="activity-retention-days">Retention period</label><select id="activity-retention-days" value={retentionDays} disabled={retentionLoading || !retentionEditable} onChange={event => setRetentionDays(Number(event.target.value))} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60">{retentionOptions.map(days => <option key={days} value={days}>{days} days{days === 15 ? " (default)" : ""}</option>)}</select>{retentionEditable && <button type="button" disabled={retentionLoading || retentionSaving || retentionDays === savedRetentionDays} onClick={saveRetention} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-40">{retentionSaving ? "Saving..." : "Save"}</button>}</div>
-            </div>
-          </div>
-          {retentionError && <div className="m-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{retentionError}</div>}
+          <div className="border-b border-slate-100 px-5 py-5 sm:px-6"><h2 className="text-lg font-bold">Activity history</h2><p className="text-xs text-slate-400">{pagination.total} recorded event{pagination.total === 1 ? "" : "s"}</p></div>
           {activityError && <div className="m-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{activityError}</div>}
           {activityLoading ? <p className="p-12 text-center text-sm text-slate-400">Loading activities...</p> : activities.length ? (
             <div className="grid gap-6 p-5 md:grid-cols-2 sm:p-6">{activities.map(activity => <ActivityItem key={activity.id} activity={activity} />)}</div>
