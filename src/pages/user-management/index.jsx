@@ -58,6 +58,7 @@ const UserManagement = () => {
     { key: "child_count", label: "Children", render: (value) => Number(value || 0).toLocaleString() },
     { key: "coins_count", label: "Coins", render: (value) => Number(value || 0).toLocaleString() },
     { key: "total_xp", label: "XP", render: (value) => Number(value || 0).toLocaleString() },
+    { key: "attempts", label: "Attempts", render: (value, row) => Number(value ?? row.attempts_count ?? row.performance?.attempts ?? 0).toLocaleString() },
     {
       key: "is_verified", label: "Status", render: (value) => (
         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${value ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>{value ? "Verified" : "Pending"}</span>
