@@ -78,7 +78,7 @@ export const SetAuthToken = token => {
 
 // export const useURL = process.env.REACT_APP_BASE_URL;
 export const useURL =
-	(process.env.REACT_APP_BASE_URL || "https://cedu-api.cephasict.com").replace(/\/+$/, "");
+	(process.env.REACT_APP_BASE_URL || "https://cedugames-backend.onrender.com").replace(/\/+$/, "");
 
 export const useURL2 =
 	(process.env.REACT_APP_SUPPORT_BASE_URL || useURL).replace(/\/+$/, "");
