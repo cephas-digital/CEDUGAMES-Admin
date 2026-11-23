@@ -4,6 +4,12 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 ## Available Scripts
 
+PS C:\Users\akind\Desktop\Cedugames_BE> \
+acces the BE from here
+
+merge every commitson he staging branches of these to rpo to the main so thatgithub stays updated
+
+
 In the project directory, you can run:
 
 ### `npm start`
